@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Notifications - Earnnest{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-bell"></i> Notifications</h1>
+            <p class="subtitle">Your latest updates</p>
+        </div>
+    </div>
+
+    <div class="dash-card">
+        {% if notifications %}
+            {% for notif in notifications %}
+            <div class="notif-item {% if not notif.is_read %}notif-unread{% endif %}">
+                <div class="notif-icon">
+                    {% if notif.notification_type == 'investment_matured' %}
+                        <i class="fas fa-chart-line" style="color:var(--gold)"></i>
+                    {% elif notif.notification_type == 'referral_bonus' %}
+                        <i class="fas fa-users" style="color:var(--accent)"></i>
+                    {% elif notif.notification_type == 'withdrawal_approved' %}
+                        <i class="fas fa-check-circle" style="color:var(--primary)"></i>
+                    {% elif notif.notification_type == 'withdrawal_rejected' %}
+                        <i class="fas fa-times-circle" style="color:var(--red)"></i>
+                    {% else %}
+                        <i class="fas fa-bell" style="color:var(--blue)"></i>
+                    {% endif %}
+                </div>
+                <div class="notif-body">
+                    <strong>{{ notif.title }}</strong>
+                    <p>{{ notif.message }}</p>
+                    <small>{{ notif.created_at|date:"M d Y, H:i" }}</small>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-bell"></i>
+            <p>No notifications yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

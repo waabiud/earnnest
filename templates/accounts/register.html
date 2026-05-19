@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register - Earnnest{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-left">
+        <div class="auth-brand">
+            <span class="brand-icon-lg">₿</span>
+            <h1>Earnnest</h1>
+            <p>Join thousands earning daily on Earnnest.</p>
+        </div>
+        <div class="auth-features">
+            <div class="feature-item">
+                <i class="fas fa-shield-alt"></i>
+                <span>Activate for just Ksh 200</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-mobile-alt"></i>
+                <span>Pay via M-Pesa instantly</span>
+            </div>
+            <div class="feature-item">
+                <i class="fas fa-coins"></i>
+                <span>Start earning immediately</span>
+            </div>
+        </div>
+    </div>
+    <div class="auth-right">
+        <div class="auth-card">
+            <h2>Create Account</h2>
+            <p class="auth-subtitle">Join Earnnest today</p>
+
+            <form method="POST">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                        <input type="text" name="username"
+                            value="{{ form.username.value|default:'' }}"
+                            placeholder="Choose a username" required>
+                    </div>
+                    {% if form.username.errors %}
+                        <span class="field-error">{{ form.username.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <div class="input-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" name="email"
+                            value="{{ form.email.value|default:'' }}"
+                            placeholder="Enter your email" required>
+                    </div>
+                    {% if form.email.errors %}
+                        <span class="field-error">{{ form.email.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <div class="input-icon">
+                        <i class="fas fa-phone"></i>
+                        <input type="text" name="phone_number"
+                            value="{{ form.phone_number.value|default:'' }}"
+                            placeholder="254712345678" required>
+                    </div>
+                    {% if form.phone_number.errors %}
+                        <span class="field-error">{{ form.phone_number.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password1"
+                            placeholder="Create password" required>
+                        <span class="toggle-password" onclick="togglePassword(this)">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                    </div>
+                    {% if form.password1.errors %}
+                        <span class="field-error">{{ form.password1.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <div class="input-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" name="password2"
+                            placeholder="Repeat password" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Referral Code <span class="optional">(optional)</span></label>
+                    <div class="input-icon">
+                        <i class="fas fa-gift"></i>
+                        <input type="text" name="referral_code"
+                            value="{{ form.referral_code.value|default:'' }}"
+                            placeholder="Enter referral code">
+                    </div>
+                    {% if form.referral_code.errors %}
+                        <span class="field-error">{{ form.referral_code.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    Create Account <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                Already have an account? <a href="{% url 'accounts:login' %}">Login here</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

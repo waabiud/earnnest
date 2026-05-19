@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% block title %}Profile - Earnnest{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-user"></i> My Profile</h1>
+            <p class="subtitle">Manage your account details</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- Profile Card -->
+        <div class="dash-card">
+            <div class="profile-avatar">
+                <span>{{ user.username|first|upper }}</span>
+            </div>
+            <div style="text-align:center; margin-bottom:1.5rem;">
+                <h2 style="font-family:'Syne',sans-serif;">{{ user.username }}</h2>
+                <p style="color:var(--text2);">{{ user.email }}</p>
+                <span class="badge {% if user.is_activated %}badge-active{% else %}badge-pending{% endif %}"
+                    style="margin-top:8px; display:inline-block;">
+                    {% if user.is_activated %}
+                        <i class="fas fa-check-circle"></i> Activated
+                    {% else %}
+                        <i class="fas fa-clock"></i> Not Activated
+                    {% endif %}
+                </span>
+            </div>
+
+            <!-- Stats -->
+            <div class="activation-info">
+                <div class="info-row">
+                    <span>Wallet Balance</span>
+                    <strong class="text-green">Ksh {{ user.wallet_balance|floatformat:2 }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Total Investments</span>
+                    <strong>{{ total_investments }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Total Referrals</span>
+                    <strong>{{ total_referrals }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Referral Code</span>
+                    <strong style="color:var(--gold); letter-spacing:2px;">
+                        {{ user.referral_code }}
+                    </strong>
+                </div>
+                <div class="info-row">
+                    <span>Member Since</span>
+                    <strong>{{ user.date_joined|date:"M d, Y" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Profile -->
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <h3><i class="fas fa-edit"></i> Update Phone Number</h3>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label>Current Phone Number</label>
+                        <div class="input-icon">
+                            <i class="fas fa-phone"></i>
+                            <input type="text" name="phone_number"
+                                value="{{ user.phone_number }}"
+                                placeholder="254712345678">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </form>
+            </div>
+
+            <!-- Recent Payments -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <h3><i class="fas fa-receipt"></i> Recent Payments</h3>
+                </div>
+                {% if recent_payments %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in recent_payments %}
+                            <tr>
+                                <td>{{ p.get_payment_type_display }}</td>
+                                <td>Ksh {{ p.amount|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge badge-{{ p.status }}">
+                                        {{ p.status|capfirst }}
+                                    </span>
+                                </td>
+                                <td>{{ p.created_at|date:"M d, H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-receipt"></i>
+                    <p>No payments yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

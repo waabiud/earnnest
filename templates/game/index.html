@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}Game - Earnnest{% endblock %}
+{% block nav_game %}active{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-dice"></i> Number Guessing Game</h1>
+            <p class="subtitle">Guess the 4-digit number and win the prize pool!</p>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- Game Card -->
+        <div class="dash-card">
+            {% if current_round %}
+                <div class="game-round-badge">
+                    Round #{{ current_round.pk }} &bull; Open
+                </div>
+
+                <div class="game-prize-pool">
+                    <span class="prize-label">Prize Pool</span>
+                    <span class="prize-amount">Ksh {{ current_round.prize_pool|floatformat:2 }}</span>
+                </div>
+
+                <div class="game-info-row">
+                    <div class="game-info-item">
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>Entry Fee</span>
+                        <strong>Ksh {{ current_round.entry_fee }}</strong>
+                    </div>
+                    <div class="game-info-item">
+                        <i class="fas fa-users"></i>
+                        <span>Entries</span>
+                        <strong>{{ current_round.entries.count }}</strong>
+                    </div>
+                </div>
+
+                {% if user_entry %}
+                    <div class="game-entered">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>You're in this round!</strong>
+                            <p>Your guess: <span class="guess-display">{{ user_entry.guess }}</span></p>
+                            <p>Status: <span class="badge badge-{{ user_entry.status }}">{{ user_entry.status|capfirst }}</span></p>
+                        </div>
+                    </div>
+                {% else %}
+                    <form method="POST" action="{% url 'game:play' %}">
+                        {% csrf_token %}
+
+                        <div class="form-group" style="margin-top:1.5rem;">
+                            <label>Your 4-Digit Guess</label>
+                            <div class="guess-input-wrap">
+                                <input type="text" name="guess"
+                                    class="guess-input"
+                                    maxlength="4"
+                                    placeholder="_ _ _ _"
+                                    pattern="\d{4}"
+                                    required>
+                            </div>
+                            <small style="color:var(--text2);">Enter any number from 1000 to 9999</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label>M-Pesa Phone</label>
+                            <div class="input-icon">
+                                <i class="fas fa-phone"></i>
+                                <input type="text" name="phone_number"
+                                    value="{{ request.user.phone_number }}"
+                                    placeholder="254712345678" required>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <i class="fas fa-dice"></i>
+                            Pay Ksh {{ current_round.entry_fee }} & Submit Guess
+                        </button>
+                    </form>
+                {% endif %}
+
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-dice" style="font-size:3rem; opacity:0.3;"></i>
+                    <p>No active game round right now.</p>
+                    <p style="font-size:0.85rem; color:var(--text2);">
+                        Check back soon — rounds are opened regularly.
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Right Side -->
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+            <!-- How to play -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <h3><i class="fas fa-question-circle"></i> How to Play</h3>
+                </div>
+                <div class="how-to-play">
+                    <div class="step-item">
+                        <span class="step-num">1</span>
+                        <span>Pay the entry fee via M-Pesa</span>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">2</span>
+                        <span>Submit your 4-digit guess</span>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">3</span>
+                        <span>Admin reveals the secret number</span>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">4</span>
+                        <span>Exact match wins the entire prize pool!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Winners -->
+            <div class="dash-card">
+                <div class="dash-card-header">
+                    <h3><i class="fas fa-trophy"></i> Recent Winners</h3>
+                </div>
+                {% if recent_winners %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Winner</th>
+                                <th>Prize</th>
+                                <th>Round</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for round in recent_winners %}
+                            <tr>
+                                <td>{{ round.winner.username }}</td>
+                                <td class="text-green">Ksh {{ round.prize_pool|floatformat:2 }}</td>
+                                <td>#{{ round.pk }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-trophy"></i>
+                    <p>No winners yet. Be the first!</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- My Game History -->
+    {% if past_entries %}
+    <div class="dash-card" style="margin-top:1.5rem;">
+        <div class="dash-card-header">
+            <h3><i class="fas fa-history"></i> My Game History</h3>
+            <a href="{% url 'game:history' %}" class="view-all">View All</a>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>My Guess</th>
+                        <th>Entry Fee</th>
+                        <th>Result</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in past_entries %}
+                    <tr>
+                        <td>#{{ entry.round.pk }}</td>
+                        <td><strong>{{ entry.guess }}</strong></td>
+                        <td>Ksh {{ entry.entry_fee }}</td>
+                        <td>
+                            <span class="badge badge-{{ entry.status }}">
+                                {{ entry.status|capfirst }}
+                            </span>
+                        </td>
+                        <td>{{ entry.created_at|date:"M d, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

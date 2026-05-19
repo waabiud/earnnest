@@ -3,11 +3,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+SECRET_KEY = config("SECRET_KEY")
+DEBUG = config("DEBUG", default=False, cast=bool)
 
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',') + ['exact-viewless-bridged.ngrok-free.dev']
 INSTALLED_APPS = [
+    'unfold',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -109,7 +110,135 @@ INVESTMENT_RETURN_PERCENT = config('INVESTMENT_RETURN_PERCENT', default=5, cast=
 INVESTMENT_MATURITY_HOURS = config('INVESTMENT_MATURITY_HOURS', default=48, cast=int)
 
 # Codian M-Pesa
-CODIAN_API_URL = config('CODIAN_API_URL')
-CODIAN_API_KEY = config('CODIAN_API_KEY')
-CODIAN_SHORTCODE = config('CODIAN_SHORTCODE')
-CODIAN_CALLBACK_URL = config('CODIAN_CALLBACK_URL')
+CODIAN_CLIENT_ID = config("CODIAN_CLIENT_ID")
+CODIAN_CLIENT_SECRET = config("CODIAN_CLIENT_SECRET")
+CODIAN_SIGNATURE_SECRET = config("CODIAN_SIGNATURE_SECRET")
+CODIAN_ACCOUNT_NUMBER = config("CODIAN_ACCOUNT_NUMBER")
+CODIAN_CALLBACK_URL = config("CODIAN_CALLBACK_URL")
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://exact-viewless-bridged.ngrok-free.dev',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+# ===== UNFOLD ADMIN =====
+from django.urls import reverse_lazy
+
+UNFOLD = {
+    "SITE_TITLE": "Earnnest Admin",
+    "SITE_HEADER": "Earnnest",
+    "SITE_SUBHEADER": "Earning Platform Management",
+    "SITE_URL": "/dashboard/",
+    "SITE_ICON": None,
+    "SITE_SYMBOL": "currency_bitcoin",
+    "SHOW_HISTORY": True,
+    "SHOW_VIEW_ON_SITE": True,
+    "COLORS": {
+        "primary": {
+            "50": "240 253 244",
+            "100": "220 252 231",
+            "200": "187 247 208",
+            "300": "134 239 172",
+            "400": "74 222 128",
+            "500": "34 197 94",
+            "600": "22 163 74",
+            "700": "15 118 110",
+            "800": "6 78 59",
+            "900": "2 44 34",
+            "950": "0 20 15",
+        },
+    },
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Overview",
+                "items": [
+                    {
+                        "title": "Dashboard",
+                        "icon": "dashboard",
+                        "link": reverse_lazy("admin:index"),
+                    },
+                ],
+            },
+            {
+                "title": "Users",
+                "items": [
+                    {
+                        "title": "All Users",
+                        "icon": "people",
+                        "link": reverse_lazy("admin:accounts_user_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Payments",
+                "items": [
+                    {
+                        "title": "All Payments",
+                        "icon": "payments",
+                        "link": reverse_lazy("admin:payments_payment_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Investments",
+                "items": [
+                    {
+                        "title": "All Investments",
+                        "icon": "trending_up",
+                        "link": reverse_lazy("admin:investments_investment_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Withdrawals",
+                "items": [
+                    {
+                        "title": "All Withdrawals",
+                        "icon": "account_balance_wallet",
+                        "link": reverse_lazy("admin:withdrawals_withdrawal_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Game",
+                "items": [
+                    {
+                        "title": "Game Rounds",
+                        "icon": "casino",
+                        "link": reverse_lazy("admin:game_gameround_changelist"),
+                    },
+                    {
+                        "title": "Game Entries",
+                        "icon": "sports_esports",
+                        "link": reverse_lazy("admin:game_gameentry_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Referrals",
+                "items": [
+                    {
+                        "title": "All Referrals",
+                        "icon": "share",
+                        "link": reverse_lazy("admin:referrals_referral_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Notifications",
+                "items": [
+                    {
+                        "title": "All Notifications",
+                        "icon": "notifications",
+                        "link": reverse_lazy("admin:notifications_notification_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Payment Pending - Earnnest{% endblock %}
+
+{% block content %}
+<div class="activate-wrapper">
+    <div class="activate-card text-center">
+        <div class="pending-animation">
+            <div class="spinner"></div>
+        </div>
+        <h2>Waiting for Payment...</h2>
+        <p>Check your phone and enter your <strong>M-Pesa PIN</strong> to complete activation.</p>
+
+        {% if payment %}
+        <div class="activation-info">
+            <div class="info-row">
+                <span>Amount</span>
+                <strong>Ksh {{ payment.amount }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Phone</span>
+                <strong>{{ payment.phone_number }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Reference</span>
+                <strong>{{ payment.reference }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Status</span>
+                <strong id="payment-status" class="status-{{ payment.status }}">
+                    {{ payment.status|capfirst }}
+                </strong>
+            </div>
+        </div>
+        {% endif %}
+
+        <p class="activate-note">
+            <i class="fas fa-sync-alt fa-spin"></i>
+            This page will update automatically when payment is confirmed.
+        </p>
+
+        <a href="{% url 'payments:activate' %}" class="btn btn-outline">
+            <i class="fas fa-redo"></i> Try Again
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Poll every 5 seconds to check payment status
+    function checkStatus() {
+        fetch("{% url 'payments:activation_status' %}")
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success' && data.is_activated) {
+                    window.location.href = "{% url 'dashboard:home' %}";
+                } else if (data.status === 'failed') {
+                    document.getElementById('payment-status').textContent = 'Failed';
+                    document.getElementById('payment-status').className = 'status-failed';
+                }
+            });
+    }
+    setInterval(checkStatus, 5000);
+</script>
+{% endblock %}

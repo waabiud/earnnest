@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Withdrawals - Earnnest{% endblock %}
+{% block nav_withdraw %}active{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-wallet"></i> Withdrawals</h1>
+            <p class="subtitle">Withdraw your earnings to M-Pesa</p>
+        </div>
+    </div>
+
+    <!-- Balance Cards -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3,1fr); margin-bottom:1.5rem;">
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Wallet Balance</span>
+                <span class="stat-value">Ksh {{ wallet|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card gold">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Matured Investments</span>
+                <span class="stat-value">Ksh {{ available|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Withdrawable</span>
+                <span class="stat-value">Ksh {{ total_withdrawable|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- Withdrawal Form -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-arrow-up"></i> Request Withdrawal</h3>
+            </div>
+
+            {% if total_withdrawable > 0 %}
+            <form method="POST" action="{% url 'withdrawals:request' %}">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label>Withdraw From</label>
+                    <select name="source" class="form-select">
+                        {% if wallet > 0 %}
+                        <option value="wallet">Wallet (Ksh {{ wallet|floatformat:2 }})</option>
+                        {% endif %}
+                        {% if available > 0 %}
+                        <option value="investment">Matured Investments (Ksh {{ available|floatformat:2 }})</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Amount (Ksh)</label>
+                    <div class="input-icon">
+                        <i class="fas fa-coins"></i>
+                        <input type="number" name="amount"
+                            placeholder="Enter amount"
+                            min="1" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>M-Pesa Phone Number</label>
+                    <div class="input-icon">
+                        <i class="fas fa-phone"></i>
+                        <input type="text" name="phone_number"
+                            value="{{ request.user.phone_number }}"
+                            placeholder="254712345678" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-full">
+                    <i class="fas fa-paper-plane"></i> Submit Withdrawal
+                </button>
+            </form>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-lock"></i>
+                <p>No funds available to withdraw.</p>
+                <p style="font-size:0.85rem; color:var(--text2);">
+                    Invest and wait 48 hours for maturity.
+                </p>
+                <a href="{% url 'investments:create' %}" class="btn btn-primary btn-sm">
+                    Invest Now
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Withdrawals -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-history"></i> Withdrawal History</h3>
+            </div>
+
+            {% if withdrawals %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Amount</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in withdrawals %}
+                        <tr>
+                            <td>Ksh {{ w.amount|floatformat:2 }}</td>
+                            <td>{{ w.phone_number }}</td>
+                            <td>
+                                <span class="badge badge-{{ w.status }}">
+                                    {{ w.status|capfirst }}
+                                </span>
+                            </td>
+                            <td>{{ w.created_at|date:"M d, H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>No withdrawals yet.</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

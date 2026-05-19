@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}My Investments - Earnnest{% endblock %}
+{% block nav_invest %}active{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-chart-line"></i> Investments</h1>
+            <p class="subtitle">5% returns every 48 hours</p>
+        </div>
+        <a href="{% url 'investments:create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Investment
+        </a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" style="grid-template-columns: repeat(3,1fr);">
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Invested</span>
+                <span class="stat-value">Ksh {{ total_invested|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-arrow-trend-up"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Profit</span>
+                <span class="stat-value">Ksh {{ total_profit|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card gold">
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Active</span>
+                <span class="stat-value">{{ active.count }} investment(s)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Investment Info Banner -->
+    <div class="referral-banner" style="margin-bottom:1.5rem;">
+        <div class="referral-banner-text">
+            <h3><i class="fas fa-info-circle"></i> How it works</h3>
+            <p>
+                Invest minimum Ksh {{ min_investment }} →
+                Earn {{ return_percent }}% profit →
+                Matures in {{ maturity_hours }} hours →
+                Withdraw to M-Pesa
+            </p>
+        </div>
+    </div>
+
+    <!-- Investments Table -->
+    <div class="dash-card">
+        <div class="dash-card-header">
+            <h3>All Investments</h3>
+        </div>
+
+        {% if investments %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Profit</th>
+                        <th>Total Return</th>
+                        <th>Maturity Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inv in investments %}
+                    <tr>
+                        <td>Ksh {{ inv.amount|floatformat:2 }}</td>
+                        <td class="text-green">+Ksh {{ inv.profit|floatformat:2 }}</td>
+                        <td>Ksh {{ inv.total_return|floatformat:2 }}</td>
+                        <td>{{ inv.maturity_date|date:"M d Y, H:i" }}</td>
+                        <td>
+                            <span class="badge badge-{{ inv.status }}">
+                                {% if inv.status == 'active' and inv.is_matured %}
+                                    Ready
+                                {% else %}
+                                    {{ inv.status|capfirst }}
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-chart-line"></i>
+            <p>You have no investments yet.</p>
+            <a href="{% url 'investments:create' %}" class="btn btn-primary btn-sm">
+                Start Investing
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

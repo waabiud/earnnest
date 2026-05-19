@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}New Investment - Earnnest{% endblock %}
+{% block nav_invest %}active{% endblock %}
+
+{% block content %}
+<div class="activate-wrapper">
+    <div class="activate-card">
+        <div class="activate-icon">
+            <i class="fas fa-chart-line"></i>
+        </div>
+        <h2>New Investment</h2>
+        <p>Invest from your wallet and earn <strong>{{ return_percent }}%</strong> after <strong>{{ maturity_hours }} hours</strong>.</p>
+
+<div class="activation-info" style="margin-bottom:1.5rem;">
+    <div class="info-row">
+        <span>Wallet Balance</span>
+        <strong class="text-green">Ksh {{ wallet|floatformat:2 }}</strong>
+    </div>
+</div>
+
+{% if wallet < min_investment %}
+<div class="alert alert-warning" style="position:static; margin-bottom:1rem;">
+    <i class="fas fa-exclamation-triangle"></i>
+    Insufficient balance. Minimum investment is Ksh {{ min_investment }}.
+    <a href="{% url 'payments:topup' %}" style="color:inherit; font-weight:600;">Top Up →</a>
+</div>
+{% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="form-group" style="text-align:left;">
+                <label>Investment Amount (Ksh)</label>
+                <div class="input-icon">
+                    <i class="fas fa-coins"></i>
+                    <input type="number" name="amount"
+                        placeholder="Minimum Ksh {{ min_investment }}"
+                        min="{{ min_investment }}" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="text-align:left;">
+                <label>M-Pesa Phone Number</label>
+                <div class="input-icon">
+                    <i class="fas fa-phone"></i>
+                    <input type="text" name="phone_number"
+                        value="{{ phone }}"
+                        placeholder="254712345678" required>
+                </div>
+            </div>
+
+            <!-- Live calculator -->
+            <div class="activation-info" id="calc" style="display:none;">
+                <div class="info-row">
+                    <span>You Invest</span>
+                    <strong id="calc-amount">Ksh 0</strong>
+                </div>
+                <div class="info-row">
+                    <span>Profit ({{ return_percent }}%)</span>
+                    <strong class="text-green" id="calc-profit">+ Ksh 0</strong>
+                </div>
+                <div class="info-row">
+                    <span>Total Return</span>
+                    <strong id="calc-total">Ksh 0</strong>
+                </div>
+                <div class="info-row">
+                    <span>Matures In</span>
+                    <strong>{{ maturity_hours }} hours</strong>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-mobile-alt"></i> Pay & Invest
+            </button>
+        </form>
+
+        <p class="activate-note">
+            <i class="fas fa-lock"></i>
+            Funds are locked until maturity. Withdrawal requires a matured investment.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const amountInput = document.querySelector('input[name="amount"]');
+const calc = document.getElementById('calc');
+const returnPercent = {{ return_percent }};
+
+amountInput.addEventListener('input', function() {
+    const amount = parseFloat(this.value) || 0;
+    if (amount > 0) {
+        const profit = (amount * returnPercent / 100).toFixed(2);
+        const total = (amount + parseFloat(profit)).toFixed(2);
+        document.getElementById('calc-amount').textContent = `Ksh ${amount.toLocaleString()}`;
+        document.getElementById('calc-profit').textContent = `+ Ksh ${profit}`;
+        document.getElementById('calc-total').textContent = `Ksh ${total}`;
+        calc.style.display = 'block';
+    } else {
+        calc.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}

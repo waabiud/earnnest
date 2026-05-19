@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Top Up Pending - Earnnest{% endblock %}
+
+{% block content %}
+<div class="activate-wrapper">
+    <div class="activate-card">
+        <div class="pending-animation">
+            <div class="spinner"></div>
+        </div>
+        <h2>Processing Top Up...</h2>
+        <p>Enter your <strong>M-Pesa PIN</strong> to complete your wallet top up.</p>
+
+        {% if payment %}
+        <div class="activation-info">
+            <div class="info-row">
+                <span>Amount</span>
+                <strong>Ksh {{ payment.amount|floatformat:2 }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Phone</span>
+                <strong>{{ payment.phone_number }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Reference</span>
+                <strong>{{ payment.reference }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Status</span>
+                <strong id="topup-status" class="status-{{ payment.status }}">
+                    {{ payment.status|capfirst }}
+                </strong>
+            </div>
+        </div>
+        {% endif %}
+
+        <p class="activate-note">
+            <i class="fas fa-sync-alt fa-spin"></i>
+            This page updates automatically when payment is confirmed.
+        </p>
+
+        <div style="display:flex; gap:1rem; margin-top:1rem;">
+            <a href="{% url 'payments:topup' %}" class="btn btn-outline" style="flex:1; justify-content:center;">
+                <i class="fas fa-redo"></i> Try Again
+            </a>
+            <a href="{% url 'dashboard:home' %}" class="btn btn-primary" style="flex:1; justify-content:center;">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function checkTopupStatus() {
+    fetch("{% url 'payments:topup_status' %}")
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.href = "{% url 'dashboard:home' %}";
+            } else if (data.status === 'failed') {
+                document.getElementById('topup-status').textContent = 'Failed';
+                document.getElementById('topup-status').className = 'status-failed';
+            }
+        });
+}
+setInterval(checkTopupStatus, 5000);
+</script>
+{% endblock %}

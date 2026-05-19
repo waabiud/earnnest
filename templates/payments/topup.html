@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Top Up Wallet - Earnnest{% endblock %}
+
+{% block content %}
+<div class="activate-wrapper">
+    <div class="activate-card">
+        <div class="activate-icon">
+            <i class="fas fa-wallet"></i>
+        </div>
+        <h2>Top Up Wallet</h2>
+        <p>Add funds to your wallet via M-Pesa to invest and play.</p>
+
+        <!-- Current balance -->
+        <div class="activation-info">
+            <div class="info-row">
+                <span>Current Balance</span>
+                <strong class="text-green">Ksh {{ wallet|floatformat:2 }}</strong>
+            </div>
+            {% if invest_amount %}
+            <div class="info-row">
+                <span>You Want to Invest</span>
+                <strong>Ksh {{ invest_amount }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Amount Needed</span>
+                <strong class="status-failed">Ksh {{ suggested_amount }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if suggested_amount %}
+        <div class="alert alert-warning" style="position:static; margin:1rem 0;">
+            <i class="fas fa-exclamation-triangle"></i>
+            Top up at least <strong>Ksh {{ suggested_amount }}</strong> to continue.
+        </div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="form-group" style="text-align:left; margin-top:1rem;">
+                <label>Amount (Ksh)</label>
+                <div class="input-icon">
+                    <i class="fas fa-coins"></i>
+                    <input type="number" name="amount" id="topup-amount"
+                        value="{{ suggested_amount }}"
+                        placeholder="Enter amount (min Ksh 10)"
+                        min="10" required>
+                </div>
+            </div>
+
+            <!-- Quick amounts -->
+            <div class="quick-amounts">
+                <button type="button" onclick="setAmount(500)"  class="quick-btn">Ksh 500</button>
+                <button type="button" onclick="setAmount(1000)" class="quick-btn">Ksh 1,000</button>
+                <button type="button" onclick="setAmount(2000)" class="quick-btn">Ksh 2,000</button>
+                <button type="button" onclick="setAmount(5000)" class="quick-btn">Ksh 5,000</button>
+            </div>
+
+            <div class="form-group" style="text-align:left;">
+                <label>M-Pesa Phone Number</label>
+                <div class="input-icon">
+                    <i class="fas fa-phone"></i>
+                    <input type="text" name="phone_number"
+                        value="{{ phone }}"
+                        placeholder="254712345678" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-mobile-alt"></i> Send STK Push
+            </button>
+        </form>
+
+        {% if invest_amount %}
+        <p class="activate-note" style="margin-top:1rem;">
+            <i class="fas fa-info-circle"></i>
+            After topping up, go back to
+            <a href="{% url 'investments:create' %}" style="color:var(--primary);">
+                Investments
+            </a>
+            to place your Ksh {{ invest_amount }} investment.
+        </p>
+        {% endif %}
+
+        <p class="activate-note">
+            <i class="fas fa-bolt"></i>
+            Funds reflect in your wallet instantly after payment.
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setAmount(val) {
+    document.getElementById('topup-amount').value = val;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Activate Account - Earnnest{% endblock %}
+
+{% block content %}
+<div class="activate-wrapper">
+    <div class="activate-card">
+        <div class="activate-icon">
+            <i class="fas fa-sim-card"></i>
+        </div>
+        <h2>Activate Your Account</h2>
+        <p>Pay <strong>Ksh {{ fee }}</strong> via M-Pesa to unlock your Earnnest account.</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>M-Pesa Phone Number</label>
+                <div class="input-icon">
+                    <i class="fas fa-phone"></i>
+                    <input type="text" name="phone_number"
+                        value="{{ phone }}"
+                        placeholder="254712345678" required>
+                </div>
+                <small>Enter the number to receive STK Push</small>
+            </div>
+
+            <div class="activation-info">
+                <div class="info-row">
+                    <span>Activation Fee</span>
+                    <strong>Ksh {{ fee }}</strong>
+                </div>
+                <div class="info-row">
+                    <span>Payment Method</span>
+                    <strong>M-Pesa STK Push</strong>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full">
+                <i class="fas fa-mobile-alt"></i> Send STK Push
+            </button>
+        </form>
+
+        <p class="activate-note">
+            <i class="fas fa-info-circle"></i>
+            You will receive a prompt on your phone. Enter your M-Pesa PIN to complete.
+        </p>
+
+        <div style="margin-top:1.5rem; text-align:center;">
+            <a href="{% url 'accounts:logout' %}"
+               style="color:var(--text2); font-size:0.85rem; text-decoration:none;">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

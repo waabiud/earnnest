@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Referrals - Earnnest{% endblock %}
+{% block nav_referrals %}active{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-users"></i> Referral Program</h1>
+            <p class="subtitle">Earn Ksh 50 for every friend you activate</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:1.5rem;">
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Earned</span>
+                <span class="stat-value">Ksh {{ total_earned|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Referrals</span>
+                <span class="stat-value">{{ total_referrals }}</span>
+            </div>
+        </div>
+        <div class="stat-card gold">
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Paid Referrals</span>
+                <span class="stat-value">{{ paid_referrals }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referral Link -->
+    <div class="referral-banner" style="margin-bottom:1.5rem;">
+        <div class="referral-banner-text">
+            <h3><i class="fas fa-link"></i> Your Referral Link</h3>
+            <p>Share this link. When friends register and pay Ksh 200, you earn Ksh 50 instantly.</p>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; flex:1; max-width:420px;">
+            <div class="referral-link-box">
+                <input type="text" id="refLink" value="{{ referral_link }}" readonly>
+                <button onclick="copyRef()" class="btn btn-outline btn-sm">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <a href="https://wa.me/?text=Join%20Earnnest%20and%20earn%20daily!%20Use%20my%20link:%20{{ referral_link|urlencode }}"
+                   target="_blank" class="btn btn-outline btn-sm" style="flex:1; justify-content:center;">
+                    <i class="fab fa-whatsapp"></i> WhatsApp
+                </a>
+                <a href="https://t.me/share/url?url={{ referral_link|urlencode }}&text=Join%20Earnnest%20and%20earn%20daily!"
+                   target="_blank" class="btn btn-outline btn-sm" style="flex:1; justify-content:center;">
+                    <i class="fab fa-telegram"></i> Telegram
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Your Code -->
+    <div class="dash-card" style="margin-bottom:1.5rem; text-align:center;">
+        <p style="color:var(--text2); margin-bottom:8px;">Your Referral Code</p>
+        <div class="guess-display" style="font-size:2rem; letter-spacing:8px;">
+            {{ referral_code }}
+        </div>
+        <p style="color:var(--text2); font-size:0.85rem; margin-top:8px;">
+            Friends can also enter this code during registration
+        </p>
+    </div>
+
+    <!-- Referrals Table -->
+    <div class="dash-card">
+        <div class="dash-card-header">
+            <h3><i class="fas fa-list"></i> My Referrals</h3>
+        </div>
+
+        {% if referrals %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Joined</th>
+                        <th>Bonus</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ref in referrals %}
+                    <tr>
+                        <td>
+                            <i class="fas fa-user" style="color:var(--text2); margin-right:6px;"></i>
+                            {{ ref.referred_user.username }}
+                        </td>
+                        <td>{{ ref.created_at|date:"M d Y" }}</td>
+                        <td class="text-green">Ksh {{ ref.bonus_amount }}</td>
+                        <td>
+                            {% if ref.bonus_paid %}
+                                <span class="badge badge-active">Paid</span>
+                            {% else %}
+                                <span class="badge badge-pending">Pending</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <p>No referrals yet. Share your link to start earning!</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

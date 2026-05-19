@@ -5,6 +5,7 @@ from django.conf import settings
 class Payment(models.Model):
     PAYMENT_TYPE_CHOICES = [
         ('activation', 'Account Activation'),
+        ('topup', 'Wallet Top Up'),
         ('investment', 'Investment'),
         ('game', 'Game Entry'),
     ]

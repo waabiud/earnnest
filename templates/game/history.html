@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Game History - Earnnest{% endblock %}
+{% block nav_game %}active{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <div class="dashboard-header">
+        <div>
+            <h1><i class="fas fa-history"></i> Game History</h1>
+            <p class="subtitle">All your past game entries</p>
+        </div>
+        <a href="{% url 'game:index' %}" class="btn btn-primary">
+            <i class="fas fa-dice"></i> Play Now
+        </a>
+    </div>
+
+    <div class="dash-card">
+        {% if entries %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Round</th>
+                        <th>My Guess</th>
+                        <th>Secret Number</th>
+                        <th>Entry Fee</th>
+                        <th>Result</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in entries %}
+                    <tr>
+                        <td>#{{ entry.round.pk }}</td>
+                        <td><strong>{{ entry.guess }}</strong></td>
+                        <td>
+                            {% if entry.round.status == 'revealed' %}
+                                <strong>{{ entry.round.secret_number }}</strong>
+                            {% else %}
+                                <span style="color:var(--text2);">Hidden</span>
+                            {% endif %}
+                        </td>
+                        <td>Ksh {{ entry.entry_fee }}</td>
+                        <td>
+                            <span class="badge badge-{{ entry.status }}">
+                                {{ entry.status|capfirst }}
+                            </span>
+                        </td>
+                        <td>{{ entry.created_at|date:"M d Y, H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-dice"></i>
+            <p>You haven't played any rounds yet.</p>
+            <a href="{% url 'game:index' %}" class="btn btn-primary btn-sm">Play Now</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

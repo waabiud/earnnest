@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - Earnnest{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+
+    <div class="dashboard-header">
+        <div>
+            <h1>Hello, {{ user.username }} 👋</h1>
+            <p class="subtitle">Here's your Earnnest overview</p>
+        </div>
+        <a href="{% url 'investments:create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> New Investment
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Wallet Balance</span>
+                <span class="stat-value">Ksh {{ wallet_balance|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Invested</span>
+                <span class="stat-value">Ksh {{ total_invested|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card gold">
+            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Total Earned</span>
+                <span class="stat-value">Ksh {{ total_earned|floatformat:2 }}</span>
+            </div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <span class="stat-label">Referral Earnings</span>
+                <span class="stat-value">Ksh {{ total_referral_earnings|floatformat:2 }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Referral Banner -->
+    <div class="referral-banner">
+        <div class="referral-banner-text">
+            <h3><i class="fas fa-gift"></i> Earn Ksh 50 per referral!</h3>
+            <p>Share your link. When friends activate, you earn instantly.</p>
+        </div>
+        <div class="referral-link-box">
+            <input type="text" id="refLink" value="{{ referral_link }}" readonly>
+            <button onclick="copyRef()" class="btn btn-outline btn-sm">
+                <i class="fas fa-copy"></i> Copy
+            </button>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <!-- Active Investments -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-chart-line"></i> Active Investments</h3>
+                <a href="{% url 'investments:list' %}" class="view-all">View All</a>
+            </div>
+            {% if active_investments %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Amount</th>
+                            <th>Return</th>
+                            <th>Matures</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in active_investments %}
+                        <tr>
+                            <td>Ksh {{ inv.amount|floatformat:2 }}</td>
+                            <td class="text-green">+Ksh {{ inv.profit|floatformat:2 }}</td>
+                            <td>{{ inv.maturity_date|date:"M d, H:i" }}</td>
+                            <td><span class="badge badge-{{ inv.status }}">{{ inv.status }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-chart-line"></i>
+                <p>No active investments yet.</p>
+                <a href="{% url 'investments:create' %}" class="btn btn-primary btn-sm">Invest Now</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Referrals -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-users"></i> Recent Referrals</h3>
+                <a href="{% url 'referrals:dashboard' %}" class="view-all">View All</a>
+            </div>
+            {% if referrals %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Bonus</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ref in referrals %}
+                        <tr>
+                            <td>{{ ref.referred_user.username }}</td>
+                            <td class="text-green">Ksh {{ ref.bonus_amount }}</td>
+                            <td>{{ ref.created_at|date:"M d" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <p>No referrals yet. Share your link!</p>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

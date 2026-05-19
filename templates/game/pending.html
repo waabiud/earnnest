@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Game Entry Pending - Earnnest{% endblock %}
+
+{% block content %}
+<div class="activate-wrapper">
+    <div class="activate-card">
+        <div class="pending-animation">
+            <div class="spinner"></div>
+        </div>
+        <h2>Confirming Entry...</h2>
+        <p>Enter your <strong>M-Pesa PIN</strong> to confirm your game entry.</p>
+
+        {% if entry %}
+        <div class="activation-info">
+            <div class="info-row">
+                <span>Your Guess</span>
+                <strong class="guess-display">{{ entry.guess }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Round</span>
+                <strong>#{{ entry.round.pk }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Entry Fee</span>
+                <strong>Ksh {{ entry.entry_fee }}</strong>
+            </div>
+            <div class="info-row">
+                <span>Prize Pool</span>
+                <strong class="text-green">Ksh {{ entry.round.prize_pool|floatformat:2 }}</strong>
+            </div>
+        </div>
+        {% endif %}
+
+        <div style="display:flex; gap:1rem; margin-top:1rem;">
+            <a href="{% url 'game:index' %}" class="btn btn-primary" style="flex:1; justify-content:center;">
+                <i class="fas fa-dice"></i> Back to Game
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

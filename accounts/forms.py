@@ -1,4 +1,3 @@
-import uuid
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import User
@@ -22,28 +21,43 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'phone_number',
-            'password1', 'password2', 'referral_code'
+            'username',
+            'email',
+            'phone_number',
+            'password1',
+            'password2',
         ]
 
     def clean_phone_number(self):
         phone = self.cleaned_data.get('phone_number')
         if not phone.startswith('254'):
-            raise forms.ValidationError('Phone must start with 254 e.g. 254712345678')
+            raise forms.ValidationError(
+                'Phone must start with 254 e.g. 254712345678'
+            )
         if len(phone) != 12:
-            raise forms.ValidationError('Enter a valid 12-digit number e.g. 254712345678')
+            raise forms.ValidationError(
+                'Enter a valid 12-digit number e.g. 254712345678'
+            )
         if not phone[3:].isdigit():
-            raise forms.ValidationError('Phone number must contain digits only after 254')
+            raise forms.ValidationError(
+                'Phone number must contain digits only after 254'
+            )
+        if User.objects.filter(phone_number=phone).exists():
+            raise forms.ValidationError(
+                'This phone number is already registered.'
+            )
         return phone
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if User.objects.filter(email=email).exists():
-            raise forms.ValidationError('This email is already registered.')
+            raise forms.ValidationError(
+                'This email is already registered.'
+            )
         return email
 
     def clean_referral_code(self):
-        code = self.cleaned_data.get('referral_code')
+        code = self.cleaned_data.get('referral_code', '').strip().upper()
         if code:
             if not User.objects.filter(referral_code=code).exists():
                 raise forms.ValidationError('Invalid referral code.')
