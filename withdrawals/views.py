@@ -63,6 +63,9 @@ def request_withdrawal(request):
             messages.error(request, 'Amount must be greater than 0.')
             return redirect('withdrawals:index')
 
+        if amount < 500:
+            messages.error(request, 'Minimum withdrawal amount is Ksh 500.')
+            return redirect('withdrawals:index')
         # Check source
         if source == 'wallet':
             if amount > user.wallet_balance:

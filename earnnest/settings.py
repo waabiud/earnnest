@@ -1,12 +1,17 @@
+import os
+import dj_database_url
 from decouple import config
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY")
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',') + ['exact-viewless-bridged.ngrok-free.dev']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',') + [
+    '.onrender.com',
+    'exact-viewless-bridged.ngrok-free.dev',
+]
 INSTALLED_APPS = [
     'unfold',
     'django.contrib.admin',
@@ -30,6 +35,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -59,10 +65,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'earnnest.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL', default=f'sqlite:///{BASE_DIR}/db.sqlite3'),
+        conn_max_age=600,
+    )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -85,6 +91,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -118,6 +125,7 @@ CODIAN_CALLBACK_URL = config("CODIAN_CALLBACK_URL")
 
 
 CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
     'https://exact-viewless-bridged.ngrok-free.dev',
     'http://127.0.0.1:8000',
     'http://localhost:8000',
