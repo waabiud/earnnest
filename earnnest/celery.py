@@ -44,4 +44,8 @@ app.conf.beat_schedule = {
         'task': 'notifications.tasks.send_referral_reminder',
         'schedule': crontab(hour=10, minute=0, day_of_week='1,4'),
     },
+    'ensure-aviator-running': {
+        'task': 'aviator.tasks.ensure_aviator_running',
+        'schedule': crontab(minute='*/5'),
+    },
 }

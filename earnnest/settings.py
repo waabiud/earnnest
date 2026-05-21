@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'investments',
     'referrals',
     'withdrawals',
+    'aviator',
     'game',
     'notifications',
     'dashboard',

@@ -20,6 +20,7 @@ urlpatterns = [
     path('investments/', include('investments.urls')),
     path('referrals/', include('referrals.urls')),
     path('withdrawals/', include('withdrawals.urls')),
+    path('aviator/', include('aviator.urls')),
     path('game/', include('game.urls')),
     path('notifications/', include('notifications.urls')),
     path('dashboard/', include('dashboard.urls')),

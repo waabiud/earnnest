@@ -1,0 +1,467 @@
+{% extends 'base.html' %}
+{% block title %}Aviator - Earnnest{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <div class="dashboard-header">
+        <div>
+            <h1>✈️ Aviator</h1>
+            <p class="subtitle">Cash out before the plane crashes!</p>
+        </div>
+        <div class="wallet-badge">
+            <i class="fas fa-coins"></i>
+            Ksh <span id="wallet-display">{{ wallet|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <div class="aviator-layout">
+
+        <!-- Game Screen -->
+        <div class="aviator-screen">
+
+            <!-- Multiplier Display -->
+            <div class="multiplier-display" id="multiplier-display">
+                <div class="multiplier-value" id="multiplier-value">1.00x</div>
+                <div class="multiplier-status" id="multiplier-status">Waiting for bets...</div>
+            </div>
+
+            <!-- Plane Animation -->
+            <div class="plane-container" id="plane-container">
+                <div class="plane" id="plane">✈️</div>
+                <div class="plane-trail" id="plane-trail"></div>
+            </div>
+
+            <!-- Crash Display -->
+            <div class="crash-display" id="crash-display" style="display:none;">
+                <div class="crash-text">CRASHED!</div>
+                <div class="crash-multiplier" id="crash-multiplier-text"></div>
+            </div>
+
+            <!-- Recent Crashes -->
+            <div class="recent-crashes">
+                {% for round in recent_rounds %}
+                <span class="crash-badge {% if round.crash_point < 1.5 %}crash-low{% elif round.crash_point < 3 %}crash-mid{% else %}crash-high{% endif %}">
+                    {{ round.crash_point }}x
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Bet Panel -->
+        <div class="aviator-bet-panel">
+
+            <!-- Wallet -->
+            <div class="aviator-wallet">
+                <span style="color:var(--text2); font-size:0.85rem;">Wallet Balance</span>
+                <strong class="text-green">
+                    Ksh <span id="wallet-balance">{{ wallet|floatformat:2 }}</span>
+                </strong>
+            </div>
+
+            <!-- Bet Form -->
+            <div id="bet-form-section">
+                <div class="form-group">
+                    <label>Bet Amount (Ksh)</label>
+                    <div class="input-icon">
+                        <i class="fas fa-coins"></i>
+                        <input type="number" id="bet-amount"
+                            value="10" min="{{ min_bet }}"
+                            placeholder="Min Ksh {{ min_bet }}">
+                    </div>
+                    <div class="quick-amounts" style="margin-top:8px;">
+                        <button type="button" onclick="setBet(10)" class="quick-btn">10</button>
+                        <button type="button" onclick="setBet(50)" class="quick-btn">50</button>
+                        <button type="button" onclick="setBet(100)" class="quick-btn">100</button>
+                        <button type="button" onclick="setBet(500)" class="quick-btn">500</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        Auto Cashout
+                        <span class="optional">(optional)</span>
+                    </label>
+                    <div class="input-icon">
+                        <i class="fas fa-robot"></i>
+                        <input type="number" id="auto-cashout"
+                            placeholder="e.g. 2.00"
+                            step="0.01" min="1.01">
+                    </div>
+                    <small style="color:var(--text2);">
+                        Auto cashout at this multiplier
+                    </small>
+                </div>
+
+                <button id="bet-btn" onclick="placeBet()"
+                        class="btn btn-primary btn-full" style="margin-top:0.5rem;">
+                    <i class="fas fa-plane"></i> Place Bet
+                </button>
+            </div>
+
+            <!-- Active Bet Display -->
+            <div id="active-bet-section" style="display:none;">
+                <div class="activation-info">
+                    <div class="info-row">
+                        <span>Bet Amount</span>
+                        <strong id="active-bet-amount">Ksh 0</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Current Win</span>
+                        <strong class="text-green" id="current-win">Ksh 0</strong>
+                    </div>
+                    <div class="info-row">
+                        <span>Auto Cashout</span>
+                        <strong id="active-auto-cashout">-</strong>
+                    </div>
+                </div>
+
+                <button id="cashout-btn" onclick="doCashout()"
+                        class="btn btn-primary btn-full"
+                        style="background:var(--gold); color:#000; margin-top:1rem; font-size:1.1rem;">
+                    <i class="fas fa-hand-paper"></i>
+                    Cash Out
+                    <span id="cashout-btn-amount"></span>
+                </button>
+            </div>
+
+            <!-- Result Display -->
+            <div id="result-section" style="display:none;">
+                <div id="win-result" style="display:none;"
+                     class="game-entered" style="border-color:rgba(0,230,118,0.2);">
+                    <i class="fas fa-trophy" style="color:var(--gold); font-size:1.5rem;"></i>
+                    <div>
+                        <strong>You Won!</strong>
+                        <p>Cashed out at <span id="result-multiplier"></span>x</p>
+                        <p class="text-green">+Ksh <span id="result-winnings"></span></p>
+                    </div>
+                </div>
+                <div id="lose-result" style="display:none;"
+                     class="game-entered" style="border-color:rgba(255,82,82,0.2);">
+                    <i class="fas fa-plane-slash" style="color:var(--red); font-size:1.5rem;"></i>
+                    <div>
+                        <strong style="color:var(--red);">Crashed!</strong>
+                        <p style="color:var(--text2);">Better luck next round!</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Recent Bets Table -->
+    <div class="dashboard-grid" style="margin-top:1.5rem;">
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-history"></i> My Recent Bets</h3>
+            </div>
+            {% if bet_history %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Bet</th>
+                            <th>Cashout</th>
+                            <th>Winnings</th>
+                            <th>Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bet in bet_history %}
+                        <tr>
+                            <td>Ksh {{ bet.bet_amount }}</td>
+                            <td>
+                                {% if bet.cashout_multiplier %}
+                                    {{ bet.cashout_multiplier }}x
+                                {% else %} - {% endif %}
+                            </td>
+                            <td>
+                                {% if bet.status == 'won' %}
+                                    <span class="text-green">
+                                        +Ksh {{ bet.winnings|floatformat:2 }}
+                                    </span>
+                                {% else %} - {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge badge-{{ bet.status }}">
+                                    {{ bet.status|capfirst }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-plane"></i>
+                <p>No bets yet. Place your first bet!</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Top Wins -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-trophy"></i> Top Wins</h3>
+            </div>
+            {% if top_wins %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Multiplier</th>
+                            <th>Winnings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bet in top_wins %}
+                        <tr>
+                            <td>{{ bet.user.username }}</td>
+                            <td style="color:var(--gold);">
+                                {{ bet.cashout_multiplier }}x
+                            </td>
+                            <td class="text-green">
+                                Ksh {{ bet.winnings|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-trophy"></i>
+                <p>No wins yet. Be the first!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Game state
+let currentRound = null;
+let currentMultiplier = 1.0;
+let isFlying = false;
+let hasBet = false;
+let betAmount = 0;
+let autoCashout = null;
+let multiplierInterval = null;
+let pollInterval = null;
+let hasCashedOut = false;
+
+{% if user_bet %}
+hasBet = true;
+betAmount = {{ user_bet.bet_amount }};
+autoCashout = {{ user_bet.auto_cashout|default:'null' }};
+showActiveBet(betAmount, autoCashout);
+{% endif %}
+
+function setBet(amount) {
+    document.getElementById('bet-amount').value = amount;
+}
+
+function showActiveBet(amount, auto) {
+    document.getElementById('bet-form-section').style.display = 'none';
+    document.getElementById('active-bet-section').style.display = 'block';
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('active-bet-amount').textContent = 'Ksh ' + amount;
+    document.getElementById('active-auto-cashout').textContent = auto ? auto + 'x' : 'Manual';
+    hasBet = true;
+    betAmount = amount;
+    autoCashout = auto;
+}
+
+function showResult(won, multiplier, winnings) {
+    document.getElementById('active-bet-section').style.display = 'none';
+    document.getElementById('result-section').style.display = 'block';
+
+    if (won) {
+        document.getElementById('win-result').style.display = 'flex';
+        document.getElementById('lose-result').style.display = 'none';
+        document.getElementById('result-multiplier').textContent = multiplier;
+        document.getElementById('result-winnings').textContent = winnings;
+    } else {
+        document.getElementById('win-result').style.display = 'none';
+        document.getElementById('lose-result').style.display = 'flex';
+    }
+
+    // Reset after 5 seconds
+    setTimeout(() => {
+        document.getElementById('result-section').style.display = 'none';
+        document.getElementById('bet-form-section').style.display = 'block';
+        hasBet = false;
+        hasCashedOut = false;
+    }, 5000);
+}
+
+function placeBet() {
+    const amount = parseFloat(document.getElementById('bet-amount').value);
+    const auto = parseFloat(document.getElementById('auto-cashout').value) || null;
+
+    if (!amount || amount < 5) {
+        alert('Minimum bet is Ksh 5');
+        return;
+    }
+
+    fetch('{% url "aviator:bet" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({
+            bet_amount: amount,
+            auto_cashout: auto
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showActiveBet(data.bet_amount, data.auto_cashout);
+            document.getElementById('wallet-balance').textContent =
+                parseFloat(data.wallet_balance).toFixed(2);
+        } else {
+            alert(data.error || 'Failed to place bet.');
+        }
+    });
+}
+
+function doCashout() {
+    if (hasCashedOut) return;
+    hasCashedOut = true;
+
+    fetch('{% url "aviator:cashout" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({multiplier: currentMultiplier})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('wallet-balance').textContent =
+                parseFloat(data.wallet_balance).toFixed(2);
+            showResult(true, data.multiplier.toFixed(2), data.winnings.toFixed(2));
+        }
+    });
+}
+
+function updateMultiplierDisplay(multiplier) {
+    const el = document.getElementById('multiplier-value');
+    if (el) {
+        el.textContent = multiplier.toFixed(2) + 'x';
+
+        // Color based on multiplier
+        if (multiplier < 1.5) {
+            el.style.color = '#ff5252';
+        } else if (multiplier < 3) {
+            el.style.color = '#ffd740';
+        } else {
+            el.style.color = '#00e676';
+        }
+    }
+
+    // Update current win display
+    if (hasBet && !hasCashedOut) {
+        const currentWin = (betAmount * multiplier).toFixed(2);
+        const winEl = document.getElementById('current-win');
+        const btnEl = document.getElementById('cashout-btn-amount');
+        if (winEl) winEl.textContent = 'Ksh ' + currentWin;
+        if (btnEl) btnEl.textContent = ' (Ksh ' + currentWin + ')';
+    }
+}
+
+function pollRoundStatus() {
+    fetch('{% url "aviator:status" %}')
+        .then(res => res.json())
+        .then(data => {
+            if (!data || data.status === 'none') return;
+
+            const statusEl = document.getElementById('multiplier-status');
+            const crashDisplay = document.getElementById('crash-display');
+            const planeContainer = document.getElementById('plane-container');
+            const multDisplay = document.getElementById('multiplier-display');
+
+            if (data.status === 'waiting') {
+                isFlying = false;
+                currentMultiplier = 1.0;
+                if (statusEl) statusEl.textContent = 'Place your bets!';
+                if (crashDisplay) crashDisplay.style.display = 'none';
+                if (planeContainer) planeContainer.style.display = 'block';
+                updateMultiplierDisplay(1.0);
+
+                // Show bet form if no bet
+                if (!hasBet) {
+                    document.getElementById('bet-form-section').style.display = 'block';
+                }
+
+            } else if (data.status === 'flying') {
+                if (!isFlying) {
+                    isFlying = true;
+                    if (statusEl) statusEl.textContent = 'Fly! Cash out before crash!';
+
+                    // Animate multiplier going up
+                    if (multiplierInterval) clearInterval(multiplierInterval);
+                    multiplierInterval = setInterval(() => {
+                        currentMultiplier += 0.01;
+                        updateMultiplierDisplay(currentMultiplier);
+
+                        // Animate plane
+                        const plane = document.getElementById('plane');
+                        if (plane) {
+                            const progress = Math.min(currentMultiplier / 10, 1);
+                            plane.style.left = (10 + progress * 70) + '%';
+                            plane.style.bottom = (10 + progress * 60) + '%';
+                        }
+                    }, 100);
+                }
+
+                // Check user's bet status
+                if (data.user_bet) {
+                    if (data.user_bet.status === 'won' && !hasCashedOut) {
+                        hasCashedOut = true;
+                        clearInterval(multiplierInterval);
+                        if (multiplierInterval) clearInterval(multiplierInterval);
+                        showResult(
+                            true,
+                            data.user_bet.cashout_multiplier,
+                            data.user_bet.winnings
+                        );
+                    }
+                }
+
+            } else if (data.status === 'crashed') {
+                isFlying = false;
+                if (multiplierInterval) clearInterval(multiplierInterval);
+
+                // Show crash
+                if (crashDisplay) {
+                    crashDisplay.style.display = 'flex';
+                    const crashText = document.getElementById('crash-multiplier-text');
+                    if (crashText) {
+                        crashText.textContent = 'Crashed at ' + data.crash_point + 'x';
+                    }
+                }
+                if (planeContainer) planeContainer.style.display = 'none';
+
+                updateMultiplierDisplay(data.crash_point || currentMultiplier);
+
+                // Show loss if had active bet
+                if (hasBet && !hasCashedOut) {
+                    showResult(false, 0, 0);
+                }
+            }
+        }).catch(() => {});
+}
+
+// Poll every second
+pollInterval = setInterval(pollRoundStatus, 1000);
+pollRoundStatus();
+</script>
+{% endblock %}
