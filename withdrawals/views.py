@@ -108,8 +108,9 @@ def request_withdrawal(request):
             status='pending',
         )
 
-        # Notify admin via email
+        # Notify admin via email (safe)
         try:
+            from django.core.mail import send_mail
             send_mail(
                 subject=f'[Earnnest] New Withdrawal - Ksh {amount}',
                 message=(
