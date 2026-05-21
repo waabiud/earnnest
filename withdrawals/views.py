@@ -1,8 +1,6 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
-from django.core.mail import send_mail
 from .models import Withdrawal
 from investments.models import Investment
 from notifications.models import Notification
@@ -72,7 +70,8 @@ def request_withdrawal(request):
             if amount > user.wallet_balance:
                 messages.error(
                     request,
-                    f'Insufficient wallet balance. Available: Ksh {user.wallet_balance}'
+                    f'Insufficient wallet balance. '
+                    f'Available: Ksh {user.wallet_balance}'
                 )
                 return redirect('withdrawals:index')
             user.wallet_balance -= amount
@@ -101,44 +100,38 @@ def request_withdrawal(request):
                 remaining -= inv.total_return()
 
         # Create withdrawal request
-        withdrawal = Withdrawal.objects.create(
+        Withdrawal.objects.create(
             user=user,
             amount=amount,
             phone_number=phone,
             status='pending',
         )
 
-        # Notify admin via email (safe)
-        try:
-            from django.core.mail import send_mail
-            send_mail(
-                subject=f'[Earnnest] New Withdrawal - Ksh {amount}',
+        # Notify admin via in-app notification
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        admins = User.objects.filter(is_superuser=True)
+        for admin in admins:
+            Notification.objects.create(
+                user=admin,
+                notification_type='general',
+                title=f'New Withdrawal Request - Ksh {amount}',
                 message=(
-                    f'New withdrawal request submitted.\n\n'
-                    f'User:    {user.username}\n'
-                    f'Email:   {user.email}\n'
-                    f'Phone:   {phone}\n'
-                    f'Amount:  Ksh {amount}\n'
-                    f'Source:  {source}\n\n'
-                    f'Approve or reject here:\n'
-                    f'https://earnnest.onrender.com/admin/withdrawals/withdrawal/\n'
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[settings.DEFAULT_FROM_EMAIL],
-                fail_silently=True,
+                    f'User {user.username} has requested a withdrawal '
+                    f'of Ksh {amount} to {phone}. '
+                    f'Please process in admin panel.'
+                )
             )
-        except Exception:
-            pass
 
-        # Notify user in-app
+        # Notify user
         Notification.objects.create(
             user=user,
             notification_type='general',
             title='Withdrawal Request Submitted',
             message=(
                 f'Your withdrawal of Ksh {amount} to {phone} '
-                f'has been submitted. '
-                f'You will be notified once processed.'
+                f'has been submitted successfully. '
+                f'You will be notified once processed within 24 hours.'
             )
         )
 

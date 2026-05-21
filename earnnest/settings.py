@@ -110,7 +110,6 @@ else:
     EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
     EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
     DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER', default='')
-
 # Celery
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
