@@ -17,8 +17,27 @@
         <!-- Game Card -->
         <div class="dash-card">
             {% if current_round %}
-                <div class="game-round-badge">
-                    Round #{{ current_round.pk }} &bull; Open
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <div class="game-round-badge">
+                        Round #{{ current_round.pk }}
+                        &bull;
+                        {% if current_round.status == 'open' %}
+                            Open
+                        {% elif current_round.status == 'closed' %}
+                            Closed
+                        {% else %}
+                            Revealed
+                        {% endif %}
+                    </div>
+                    {% if current_round.status == 'open' %}
+                    <div style="color:var(--text2); font-size:0.85rem;">
+                        <i class="fas fa-clock"></i>
+                        Closes in: <strong id="countdown" style="color:var(--gold);">
+                            {{ current_round.time_remaining }}
+                        </strong>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <div class="game-prize-pool">
@@ -37,49 +56,111 @@
                         <span>Entries</span>
                         <strong>{{ current_round.entries.count }}</strong>
                     </div>
+                    <div class="game-info-item">
+                        <i class="fas fa-wallet"></i>
+                        <span>Your Balance</span>
+                        <strong style="color:var(--primary);">
+                            Ksh {{ request.user.wallet_balance|floatformat:2 }}
+                        </strong>
+                    </div>
                 </div>
 
-                {% if user_entry %}
-                    <div class="game-entered">
-                        <i class="fas fa-check-circle"></i>
+                {% if current_round.status == 'open' %}
+                    {% if user_entry %}
+                        <div class="game-entered">
+                            <i class="fas fa-check-circle"></i>
+                            <div>
+                                <strong>You're in this round!</strong>
+                                <p>Your guess:
+                                    <span class="guess-display">{{ user_entry.guess }}</span>
+                                </p>
+                                <p>Status:
+                                    <span class="badge badge-{{ user_entry.status }}">
+                                        {{ user_entry.status|capfirst }}
+                                    </span>
+                                </p>
+                                <p style="font-size:0.8rem; color:var(--text2); margin-top:4px;">
+                                    Winner revealed automatically when round closes.
+                                </p>
+                            </div>
+                        </div>
+                    {% else %}
+                        <form method="POST" action="{% url 'game:play' %}">
+                            {% csrf_token %}
+
+                            <div class="form-group" style="margin-top:1.5rem;">
+                                <label>Your 4-Digit Guess</label>
+                                <div class="guess-input-wrap">
+                                    <input type="text" name="guess"
+                                        class="guess-input"
+                                        maxlength="4"
+                                        placeholder="_ _ _ _"
+                                        pattern="\d{4}"
+                                        required>
+                                </div>
+                                <small style="color:var(--text2);">
+                                    Enter any number from 1000 to 9999
+                                </small>
+                            </div>
+
+                            {% if request.user.wallet_balance < current_round.entry_fee %}
+                            <div class="alert alert-warning"
+                                 style="position:static; margin-bottom:1rem;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Insufficient balance.
+                                <a href="{% url 'payments:topup' %}"
+                                   style="color:inherit; font-weight:600;">
+                                    Top Up →
+                                </a>
+                            </div>
+                            {% endif %}
+
+                            <button type="submit" class="btn btn-primary btn-full"
+                                {% if request.user.wallet_balance < current_round.entry_fee %}
+                                disabled style="opacity:0.5;"
+                                {% endif %}>
+                                <i class="fas fa-dice"></i>
+                                Pay Ksh {{ current_round.entry_fee }} & Submit Guess
+                            </button>
+                        </form>
+                    {% endif %}
+
+                {% elif current_round.status == 'closed' %}
+                    <div class="game-entered" style="border-color:rgba(255,215,64,0.2);">
+                        <i class="fas fa-lock" style="color:var(--gold);"></i>
                         <div>
-                            <strong>You're in this round!</strong>
-                            <p>Your guess: <span class="guess-display">{{ user_entry.guess }}</span></p>
-                            <p>Status: <span class="badge badge-{{ user_entry.status }}">{{ user_entry.status|capfirst }}</span></p>
+                            <strong>Round Closed</strong>
+                            <p style="color:var(--text2);">
+                                Entries are closed. Winner will be revealed shortly.
+                            </p>
                         </div>
                     </div>
-                {% else %}
-                    <form method="POST" action="{% url 'game:play' %}">
-                        {% csrf_token %}
 
-                        <div class="form-group" style="margin-top:1.5rem;">
-                            <label>Your 4-Digit Guess</label>
-                            <div class="guess-input-wrap">
-                                <input type="text" name="guess"
-                                    class="guess-input"
-                                    maxlength="4"
-                                    placeholder="_ _ _ _"
-                                    pattern="\d{4}"
-                                    required>
-                            </div>
-                            <small style="color:var(--text2);">Enter any number from 1000 to 9999</small>
+                {% elif current_round.status == 'revealed' %}
+                    <div class="game-entered"
+                         style="border-color:rgba(0,230,118,0.2); background:rgba(0,230,118,0.03);">
+                        <i class="fas fa-trophy" style="color:var(--gold); font-size:2rem;"></i>
+                        <div>
+                            <strong>Round Revealed!</strong>
+                            <p>Secret number:
+                                <span class="guess-display">{{ current_round.secret_number }}</span>
+                            </p>
+                            {% if current_round.winner %}
+                            <p>Winner:
+                                <strong style="color:var(--primary);">
+                                    {{ current_round.winner.username }}
+                                </strong>
+                                won Ksh {{ current_round.prize_pool|floatformat:2 }}!
+                            </p>
+                            {% else %}
+                            <p style="color:var(--text2);">No winner this round.</p>
+                            {% endif %}
+                            <p style="font-size:0.8rem; color:var(--text2); margin-top:4px;">
+                                <i class="fas fa-sync-alt fa-spin"></i>
+                                New round starting soon...
+                            </p>
                         </div>
-
-                        <div class="form-group">
-                            <label>M-Pesa Phone</label>
-                            <div class="input-icon">
-                                <i class="fas fa-phone"></i>
-                                <input type="text" name="phone_number"
-                                    value="{{ request.user.phone_number }}"
-                                    placeholder="254712345678" required>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary btn-full">
-                            <i class="fas fa-dice"></i>
-                            Pay Ksh {{ current_round.entry_fee }} & Submit Guess
-                        </button>
-                    </form>
+                    </div>
                 {% endif %}
 
             {% else %}
@@ -87,7 +168,7 @@
                     <i class="fas fa-dice" style="font-size:3rem; opacity:0.3;"></i>
                     <p>No active game round right now.</p>
                     <p style="font-size:0.85rem; color:var(--text2);">
-                        Check back soon — rounds are opened regularly.
+                        A new round will start automatically soon.
                     </p>
                 </div>
             {% endif %}
@@ -104,7 +185,7 @@
                 <div class="how-to-play">
                     <div class="step-item">
                         <span class="step-num">1</span>
-                        <span>Pay the entry fee via M-Pesa</span>
+                        <span>Entry fee deducted from wallet</span>
                     </div>
                     <div class="step-item">
                         <span class="step-num">2</span>
@@ -112,11 +193,15 @@
                     </div>
                     <div class="step-item">
                         <span class="step-num">3</span>
-                        <span>Admin reveals the secret number</span>
+                        <span>Round closes after 24 hours</span>
                     </div>
                     <div class="step-item">
                         <span class="step-num">4</span>
-                        <span>Exact match wins the entire prize pool!</span>
+                        <span>Winner revealed automatically!</span>
+                    </div>
+                    <div class="step-item">
+                        <span class="step-num">5</span>
+                        <span>Winnings credited to wallet instantly</span>
                     </div>
                 </div>
             </div>
@@ -132,16 +217,23 @@
                         <thead>
                             <tr>
                                 <th>Winner</th>
+                                <th>Number</th>
                                 <th>Prize</th>
-                                <th>Round</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for round in recent_winners %}
                             <tr>
                                 <td>{{ round.winner.username }}</td>
-                                <td class="text-green">Ksh {{ round.prize_pool|floatformat:2 }}</td>
-                                <td>#{{ round.pk }}</td>
+                                <td>
+                                    <span class="guess-display"
+                                          style="font-size:1rem; letter-spacing:3px;">
+                                        {{ round.secret_number }}
+                                    </span>
+                                </td>
+                                <td class="text-green">
+                                    Ksh {{ round.prize_pool|floatformat:2 }}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -171,6 +263,7 @@
                     <tr>
                         <th>Round</th>
                         <th>My Guess</th>
+                        <th>Secret Number</th>
                         <th>Entry Fee</th>
                         <th>Result</th>
                         <th>Date</th>
@@ -181,13 +274,22 @@
                     <tr>
                         <td>#{{ entry.round.pk }}</td>
                         <td><strong>{{ entry.guess }}</strong></td>
+                        <td>
+                            {% if entry.round.status == 'revealed' %}
+                                <strong style="color:var(--gold);">
+                                    {{ entry.round.secret_number }}
+                                </strong>
+                            {% else %}
+                                <span style="color:var(--text2);">Hidden</span>
+                            {% endif %}
+                        </td>
                         <td>Ksh {{ entry.entry_fee }}</td>
                         <td>
                             <span class="badge badge-{{ entry.status }}">
                                 {{ entry.status|capfirst }}
                             </span>
                         </td>
-                        <td>{{ entry.created_at|date:"M d, H:i" }}</td>
+                        <td>{{ entry.created_at|date:"M d Y, H:i" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -197,4 +299,39 @@
     {% endif %}
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Countdown timer
+{% if current_round and current_round.status == 'open' and current_round.closes_at %}
+const closesAt = new Date("{{ current_round.closes_at|date:'c' }}");
+
+function updateCountdown() {
+    const now = new Date();
+    const diff = closesAt - now;
+
+    if (diff <= 0) {
+        document.getElementById('countdown').textContent = 'Closing...';
+        setTimeout(() => location.reload(), 3000);
+        return;
+    }
+
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+
+    const el = document.getElementById('countdown');
+    if (el) {
+        el.textContent = `${hours}h ${minutes}m ${seconds}s`;
+    }
+}
+
+updateCountdown();
+setInterval(updateCountdown, 1000);
+{% endif %}
+
+// Auto refresh page every 60 seconds to check round status
+setTimeout(() => location.reload(), 60000);
+</script>
 {% endblock %}

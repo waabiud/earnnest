@@ -10,6 +10,21 @@
         <h2>Activate Your Account</h2>
         <p>Pay <strong>Ksh {{ fee }}</strong> via M-Pesa to unlock your Earnnest account.</p>
 
+            <div class="activation-info" style="margin:1rem 0;">
+                <div class="info-row">
+                    <span>🎁 Free Bonus on Registration</span>
+                    <strong class="text-green">Ksh 50</strong>
+                </div>
+                <div class="info-row">
+                    <span>Referral Bonus (per friend)</span>
+                    <strong class="text-green">Ksh 50</strong>
+                </div>
+                <div class="info-row">
+                    <span>Activation Fee</span>
+                    <strong>Ksh {{ fee }}</strong>
+                </div>
+            </div>
+
         <form method="POST">
             {% csrf_token %}
             <div class="form-group">

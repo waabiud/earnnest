@@ -58,7 +58,10 @@ def activate_account(request):
             payment.status = 'failed'
             payment.description = response.get('message', 'STK push failed')
             payment.save()
-            messages.error(request, f"Payment failed: {response.get('message', 'Try again.')}")
+            messages.error(
+                request,
+                f"Payment failed: {response.get('message', 'Try again.')}"
+            )
 
     context = {
         'fee': settings.ACTIVATION_FEE,
@@ -147,7 +150,6 @@ def topup_wallet(request):
                 f"Top up failed: {response.get('message', 'Try again.')}"
             )
 
-    # Pre-fill amount from URL e.g. ?amount=500
     suggested_amount = request.GET.get('amount', '')
     invest_amount = request.GET.get('invest_amount', '')
 
@@ -158,6 +160,7 @@ def topup_wallet(request):
         'invest_amount': invest_amount,
     }
     return render(request, 'payments/topup.html', context)
+
 
 @login_required
 def topup_pending(request):
@@ -179,9 +182,14 @@ def check_topup_status(request):
     if not payment:
         return JsonResponse({'status': 'not_found'})
 
+    # Refresh user from DB to get latest balance
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = User.objects.get(pk=request.user.pk)
+
     return JsonResponse({
         'status': payment.status,
-        'wallet_balance': str(request.user.wallet_balance),
+        'wallet_balance': str(user.wallet_balance),
     })
 
 
@@ -224,10 +232,38 @@ def mpesa_callback(request):
                     user.is_activated = True
                     user.save()
 
+                    from notifications.models import Notification
+
+                    # Notify new user
+                    Notification.objects.create(
+                        user=user,
+                        notification_type='general',
+                        title='Account Activated!',
+                        message=(
+                            'Your account has been activated successfully. '
+                            'You can now invest, refer friends and play games. '
+                            'Happy earning!'
+                        )
+                    )
+
+                    # Credit referrer Ksh 50
                     if user.referred_by:
                         referrer = user.referred_by
                         referrer.wallet_balance += settings.REFERRAL_BONUS
                         referrer.save()
+
+                        # Notify referrer
+                        Notification.objects.create(
+                            user=referrer,
+                            notification_type='referral_bonus',
+                            title='Referral Bonus Received!',
+                            message=(
+                                f'{user.username} just activated their account '
+                                f'using your referral link. '
+                                f'Ksh {settings.REFERRAL_BONUS} has been '
+                                f'credited to your wallet!'
+                            )
+                        )
 
                         Referral.objects.get_or_create(
                             referrer=referrer,

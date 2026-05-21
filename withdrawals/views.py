@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.conf import settings
+from django.core.mail import send_mail
 from .models import Withdrawal
 from investments.models import Investment
+from notifications.models import Notification
 
 
 def activated_required(view_func):
@@ -20,7 +22,6 @@ def activated_required(view_func):
 def withdrawal_index(request):
     user = request.user
 
-    # Only matured investments that haven't been withdrawn
     matured_investments = Investment.objects.filter(
         user=user,
         status='matured'
@@ -30,7 +31,6 @@ def withdrawal_index(request):
         user=user
     ).order_by('-created_at')
 
-    # Total available to withdraw
     available = sum(i.total_return() for i in matured_investments)
     wallet = user.wallet_balance
 
@@ -51,7 +51,7 @@ def request_withdrawal(request):
     if request.method == 'POST':
         amount = request.POST.get('amount')
         phone = request.POST.get('phone_number', user.phone_number)
-        source = request.POST.get('source', 'wallet')  # 'wallet' or 'investment'
+        source = request.POST.get('source', 'wallet')
 
         try:
             amount = int(amount)
@@ -66,12 +66,15 @@ def request_withdrawal(request):
         if amount < 500:
             messages.error(request, 'Minimum withdrawal amount is Ksh 500.')
             return redirect('withdrawals:index')
+
         # Check source
         if source == 'wallet':
             if amount > user.wallet_balance:
-                messages.error(request, f'Insufficient wallet balance. Available: Ksh {user.wallet_balance}')
+                messages.error(
+                    request,
+                    f'Insufficient wallet balance. Available: Ksh {user.wallet_balance}'
+                )
                 return redirect('withdrawals:index')
-            # Deduct from wallet
             user.wallet_balance -= amount
             user.save()
 
@@ -83,10 +86,12 @@ def request_withdrawal(request):
             total_matured = sum(i.total_return() for i in matured)
 
             if amount > total_matured:
-                messages.error(request, f'Insufficient matured investment funds. Available: Ksh {total_matured}')
+                messages.error(
+                    request,
+                    f'Insufficient matured funds. Available: Ksh {total_matured}'
+                )
                 return redirect('withdrawals:index')
 
-            # Mark investments as withdrawn
             remaining = amount
             for inv in matured:
                 if remaining <= 0:
@@ -96,11 +101,44 @@ def request_withdrawal(request):
                 remaining -= inv.total_return()
 
         # Create withdrawal request
-        Withdrawal.objects.create(
+        withdrawal = Withdrawal.objects.create(
             user=user,
             amount=amount,
             phone_number=phone,
             status='pending',
+        )
+
+        # Notify admin via email
+        try:
+            send_mail(
+                subject=f'[Earnnest] New Withdrawal - Ksh {amount}',
+                message=(
+                    f'New withdrawal request submitted.\n\n'
+                    f'User:    {user.username}\n'
+                    f'Email:   {user.email}\n'
+                    f'Phone:   {phone}\n'
+                    f'Amount:  Ksh {amount}\n'
+                    f'Source:  {source}\n\n'
+                    f'Approve or reject here:\n'
+                    f'https://earnnest.onrender.com/admin/withdrawals/withdrawal/\n'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[settings.DEFAULT_FROM_EMAIL],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+        # Notify user in-app
+        Notification.objects.create(
+            user=user,
+            notification_type='general',
+            title='Withdrawal Request Submitted',
+            message=(
+                f'Your withdrawal of Ksh {amount} to {phone} '
+                f'has been submitted. '
+                f'You will be notified once processed.'
+            )
         )
 
         messages.success(

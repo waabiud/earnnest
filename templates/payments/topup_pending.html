@@ -30,8 +30,20 @@
                     {{ payment.status|capfirst }}
                 </strong>
             </div>
+            <div class="info-row">
+                <span>Wallet Balance</span>
+                <strong id="wallet-balance" class="text-green">
+                    Ksh {{ request.user.wallet_balance|floatformat:2 }}
+                </strong>
+            </div>
         </div>
         {% endif %}
+
+        <div id="success-msg" style="display:none;"
+             class="alert alert-success" style="position:static; margin-top:1rem;">
+            <i class="fas fa-check-circle"></i>
+            Wallet topped up successfully! Redirecting...
+        </div>
 
         <p class="activate-note">
             <i class="fas fa-sync-alt fa-spin"></i>
@@ -39,10 +51,12 @@
         </p>
 
         <div style="display:flex; gap:1rem; margin-top:1rem;">
-            <a href="{% url 'payments:topup' %}" class="btn btn-outline" style="flex:1; justify-content:center;">
+            <a href="{% url 'payments:topup' %}" class="btn btn-outline"
+               style="flex:1; justify-content:center;">
                 <i class="fas fa-redo"></i> Try Again
             </a>
-            <a href="{% url 'dashboard:home' %}" class="btn btn-primary" style="flex:1; justify-content:center;">
+            <a href="{% url 'dashboard:home' %}" class="btn btn-primary"
+               style="flex:1; justify-content:center;">
                 <i class="fas fa-home"></i> Dashboard
             </a>
         </div>
@@ -57,13 +71,40 @@ function checkTopupStatus() {
         .then(res => res.json())
         .then(data => {
             if (data.status === 'success') {
-                window.location.href = "{% url 'dashboard:home' %}";
+                // Update status text
+                const statusEl = document.getElementById('topup-status');
+                if (statusEl) {
+                    statusEl.textContent = 'Success';
+                    statusEl.className = 'status-success';
+                }
+
+                // Update wallet balance
+                const balanceEl = document.getElementById('wallet-balance');
+                if (balanceEl && data.wallet_balance) {
+                    balanceEl.textContent = 'Ksh ' + parseFloat(data.wallet_balance).toFixed(2);
+                }
+
+                // Show success message
+                const msg = document.getElementById('success-msg');
+                if (msg) msg.style.display = 'block';
+
+                // Redirect to dashboard after 2 seconds
+                setTimeout(() => {
+                    window.location.href = "{% url 'dashboard:home' %}";
+                }, 2000);
+
             } else if (data.status === 'failed') {
-                document.getElementById('topup-status').textContent = 'Failed';
-                document.getElementById('topup-status').className = 'status-failed';
+                const statusEl = document.getElementById('topup-status');
+                if (statusEl) {
+                    statusEl.textContent = 'Failed - Try Again';
+                    statusEl.className = 'status-failed';
+                }
             }
-        });
+        }).catch(() => {});
 }
+
+// Poll every 5 seconds
 setInterval(checkTopupStatus, 5000);
+checkTopupStatus(); // run immediately
 </script>
 {% endblock %}

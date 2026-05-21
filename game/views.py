@@ -5,8 +5,6 @@ from django.conf import settings
 from django.utils import timezone
 
 from .models import GameRound, GameEntry
-from payments.models import Payment
-from payments.mpesa import send_stk_push
 
 
 def activated_required(view_func):
@@ -19,30 +17,30 @@ def activated_required(view_func):
     return wrapper
 
 
-def generate_reference():
-    return f"GAME-{uuid.uuid4().hex[:10].upper()}"
-
-
 @activated_required
 def game_index(request):
     user = request.user
 
     # Get current open round
-    current_round = GameRound.objects.filter(status='open').order_by('-created_at').first()
+    current_round = GameRound.objects.filter(
+        status='open'
+    ).order_by('-created_at').first()
+
+    # If no open round, get most recent
+    if not current_round:
+        current_round = GameRound.objects.order_by('-created_at').first()
 
     # Check if user already entered this round
     user_entry = None
-    if current_round:
+    if current_round and current_round.status == 'open':
         user_entry = GameEntry.objects.filter(
             user=user,
             round=current_round
         ).first()
 
-    # Past rounds user participated in
+    # Past entries
     past_entries = GameEntry.objects.filter(
         user=user
-    ).exclude(
-        round=current_round
     ).order_by('-created_at')[:10]
 
     # Recent winners
@@ -91,14 +89,15 @@ def place_guess(request):
         shortfall = entry_fee - user.wallet_balance
         messages.warning(
             request,
-            f'Insufficient balance. You need Ksh {shortfall} more to play.'
+            f'Insufficient balance. You need Ksh {shortfall} more.'
         )
-        return redirect(f'/payments/topup/?amount={shortfall}')
+        return redirect('payments:topup')
+
     # Deduct from wallet
     user.wallet_balance -= entry_fee
     user.save()
 
-    # Create entry and add to prize pool
+    # Create entry
     GameEntry.objects.create(
         user=user,
         round=current_round,
@@ -107,22 +106,14 @@ def place_guess(request):
         status='pending',
     )
 
+    # Add to prize pool
     current_round.add_to_pool(entry_fee)
 
     messages.success(
         request,
-        f'Your guess {guess} has been submitted for Round #{current_round.pk}! Good luck!'
+        f'Your guess {guess} submitted for Round #{current_round.pk}! Good luck!'
     )
     return redirect('game:index')
-
-@activated_required
-def game_pending(request):
-    entry = GameEntry.objects.filter(
-        user=request.user,
-        status='pending'
-    ).order_by('-created_at').first()
-
-    return render(request, 'game/pending.html', {'entry': entry})
 
 
 @activated_required

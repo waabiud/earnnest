@@ -1,18 +1,15 @@
 {% extends 'base.html' %}
-
 {% block title %}Dashboard - Earnnest{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
 
 {% block content %}
 <div class="dashboard-wrapper">
 
-    <!-- Header -->
     <div class="dashboard-header">
         <div>
             <h1>Hello, {{ user.username }} 👋</h1>
             <p class="subtitle">Here's your Earnnest overview</p>
         </div>
-
         <a href="{% url 'investments:create' %}" class="btn btn-primary">
             <i class="fas fa-plus"></i> New Investment
         </a>
@@ -20,19 +17,17 @@
 
     <!-- Stats Cards -->
     <div class="stats-grid">
-
         <div class="stat-card green">
             <div class="stat-icon"><i class="fas fa-wallet"></i></div>
             <div class="stat-info">
                 <span class="stat-label">Wallet Balance</span>
                 <span class="stat-value">Ksh {{ wallet_balance|floatformat:2 }}</span>
-
-                <a href="{% url 'payments:topup' %}" class="btn btn-primary btn-sm" style="margin-top:8px;">
+                <a href="{% url 'payments:topup' %}" class="btn btn-primary btn-sm"
+                   style="margin-top:8px;">
                     <i class="fas fa-plus"></i> Add Funds
                 </a>
             </div>
         </div>
-
         <div class="stat-card blue">
             <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
             <div class="stat-info">
@@ -40,7 +35,6 @@
                 <span class="stat-value">Ksh {{ total_invested|floatformat:2 }}</span>
             </div>
         </div>
-
         <div class="stat-card gold">
             <div class="stat-icon"><i class="fas fa-coins"></i></div>
             <div class="stat-info">
@@ -48,7 +42,6 @@
                 <span class="stat-value">Ksh {{ total_earned|floatformat:2 }}</span>
             </div>
         </div>
-
         <div class="stat-card purple">
             <div class="stat-icon"><i class="fas fa-users"></i></div>
             <div class="stat-info">
@@ -56,7 +49,6 @@
                 <span class="stat-value">Ksh {{ total_referral_earnings|floatformat:2 }}</span>
             </div>
         </div>
-
     </div>
 
     <!-- Referral Banner -->
@@ -65,27 +57,22 @@
             <h3><i class="fas fa-gift"></i> Earn Ksh 50 per referral!</h3>
             <p>Share your link. When friends activate, you earn instantly.</p>
         </div>
-
         <div class="referral-link-box">
             <input type="text" id="refLink" value="{{ referral_link }}" readonly>
-
             <button onclick="copyRef()" class="btn btn-outline btn-sm">
                 <i class="fas fa-copy"></i> Copy
             </button>
         </div>
     </div>
 
-    <!-- Main Dashboard Grid -->
     <div class="dashboard-grid">
 
         <!-- Active Investments -->
         <div class="dash-card">
-
             <div class="dash-card-header">
                 <h3><i class="fas fa-chart-line"></i> Active Investments</h3>
                 <a href="{% url 'investments:list' %}" class="view-all">View All</a>
             </div>
-
             {% if active_investments %}
             <div class="table-wrap">
                 <table>
@@ -97,7 +84,6 @@
                             <th>Status</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {% for inv in active_investments %}
                         <tr>
@@ -106,7 +92,7 @@
                             <td>{{ inv.maturity_date|date:"M d, H:i" }}</td>
                             <td>
                                 <span class="badge badge-{{ inv.status }}">
-                                    {{ inv.status }}
+                                    {{ inv.status|capfirst }}
                                 </span>
                             </td>
                         </tr>
@@ -114,7 +100,6 @@
                     </tbody>
                 </table>
             </div>
-
             {% else %}
             <div class="empty-state">
                 <i class="fas fa-chart-line"></i>
@@ -124,17 +109,14 @@
                 </a>
             </div>
             {% endif %}
-
         </div>
 
         <!-- Recent Referrals -->
         <div class="dash-card">
-
             <div class="dash-card-header">
                 <h3><i class="fas fa-users"></i> Recent Referrals</h3>
                 <a href="{% url 'referrals:dashboard' %}" class="view-all">View All</a>
             </div>
-
             {% if referrals %}
             <div class="table-wrap">
                 <table>
@@ -145,7 +127,6 @@
                             <th>Date</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {% for ref in referrals %}
                         <tr>
@@ -157,17 +138,101 @@
                     </tbody>
                 </table>
             </div>
-
             {% else %}
             <div class="empty-state">
                 <i class="fas fa-users"></i>
                 <p>No referrals yet. Share your link!</p>
             </div>
             {% endif %}
+        </div>
 
+        <!-- Recent Withdrawals -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-wallet"></i> Recent Withdrawals</h3>
+                <a href="{% url 'withdrawals:index' %}" class="view-all">View All</a>
+            </div>
+            {% if recent_withdrawals %}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for w in recent_withdrawals %}
+                        <tr>
+                            <td>Ksh {{ w.amount|floatformat:2 }}</td>
+                            <td>
+                                <span class="badge badge-{{ w.status }}">
+                                    {{ w.status|capfirst }}
+                                </span>
+                            </td>
+                            <td>{{ w.created_at|date:"M d" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-wallet"></i>
+                <p>No withdrawals yet.</p>
+                <a href="{% url 'withdrawals:index' %}" class="btn btn-outline btn-sm">
+                    Withdraw
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="dash-card">
+            <div class="dash-card-header">
+                <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:0.8rem;">
+                <a href="{% url 'payments:topup' %}" class="btn btn-primary btn-full">
+                    <i class="fas fa-plus-circle"></i> Add Funds to Wallet
+                </a>
+                <a href="{% url 'investments:create' %}" class="btn btn-outline btn-full">
+                    <i class="fas fa-chart-line"></i> New Investment
+                </a>
+                <a href="{% url 'game:index' %}" class="btn btn-outline btn-full">
+                    <i class="fas fa-dice"></i> Play Game
+                </a>
+                <a href="{% url 'withdrawals:index' %}" class="btn btn-outline btn-full">
+                    <i class="fas fa-wallet"></i> Withdraw Funds
+                </a>
+                <a href="{% url 'referrals:dashboard' %}" class="btn btn-outline btn-full">
+                    <i class="fas fa-users"></i> View Referrals
+                </a>
+            </div>
         </div>
 
     </div>
-
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Refresh wallet balance every 30 seconds
+function refreshWalletBalance() {
+    fetch('/payments/topup/status/')
+        .then(res => res.json())
+        .then(data => {
+            if (data.wallet_balance) {
+                document.querySelectorAll('.stat-value').forEach((el, index) => {
+                    if (index === 0) {
+                        el.textContent = 'Ksh ' + parseFloat(data.wallet_balance).toFixed(2);
+                    }
+                });
+            }
+        }).catch(() => {});
+}
+
+setInterval(refreshWalletBalance, 30000);
+</script>
 {% endblock %}
