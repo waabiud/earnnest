@@ -224,7 +224,9 @@
                         <tbody>
                             {% for round in recent_winners %}
                             <tr>
-                                <td>{{ round.winner.username }}</td>
+                                <td class="masked-user">
+    {{ round.winner.username|slice:":1" }}•••{{ round.winner.username|slice:"-1:" }}
+</td>
                                 <td>
                                     <span class="guess-display"
                                           style="font-size:1rem; letter-spacing:3px;">

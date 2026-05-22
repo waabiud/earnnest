@@ -5,20 +5,14 @@ from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
 
-
-ROUND_DURATION = 30      # max seconds a round can fly
-BETTING_DURATION = 10    # seconds for betting phase
+ROUND_DURATION = 30
+BETTING_DURATION = 10
 
 
 def generate_crash_point():
-    """
-    Provably fair crash between 1.00 and 100.00.
-    Weighted toward lower values (like real aviator).
-    """
     seed = random.randint(1, 10000000)
     h = hashlib.sha256(str(seed).encode()).hexdigest()
-    val = int(h[:8], 16) / 0xFFFFFFFF  # 0.0 to 1.0
-    # Formula: most crashes between 1x-3x, rare 10x+, very rare 50x+
+    val = int(h[:8], 16) / 0xFFFFFFFF
     crash = 1.0 / (1.0 - val * 0.99)
     crash = min(crash, 100.0)
     return round(crash, 2)
@@ -41,13 +35,11 @@ class AviatorRound(models.Model):
         if not self.pk:
             now = timezone.now()
             self.betting_ends_at = now + timedelta(seconds=BETTING_DURATION)
-            # Flying ends when crash_point is reached
             fly_time = min(self.crash_point * 2, ROUND_DURATION)
             self.flying_ends_at = self.betting_ends_at + timedelta(seconds=fly_time)
         super().save(*args, **kwargs)
 
     def current_multiplier(self):
-        """Calculate current multiplier based on elapsed time."""
         now = timezone.now()
         if self.status == 'betting':
             return 1.0
@@ -58,7 +50,8 @@ class AviatorRound(models.Model):
             total = (self.flying_ends_at - self.betting_ends_at).total_seconds()
             if total > 0:
                 progress = min(elapsed / total, 1.0)
-                mult = 1.0 + (self.crash_point - 1.0) * progress
+                # FIX: exponential growth instead of linear
+                mult = 1.0 * (self.crash_point ** progress)
                 return round(min(mult, self.crash_point), 2)
         return 1.0
 

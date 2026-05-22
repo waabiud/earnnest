@@ -6,7 +6,7 @@
 <div class="dashboard-wrapper">
     <div class="dashboard-header">
         <div>
-            <h1> ✈ Aviator</h1>
+            <h1>✈ Aviator</h1>
             <p class="subtitle"></p>
         </div>
         <div class="wallet-badge">
@@ -20,7 +20,6 @@
         <!-- Game Screen -->
         <div class="aviator-screen" id="aviator-screen">
 
-            <!-- Recent crashes -->
             <div class="recent-crashes" id="recent-crashes">
                 {% for r in recent_rounds %}
                 <span class="crash-badge {% if r.crash_point < 2 %}crash-low{% elif r.crash_point < 5 %}crash-mid{% else %}crash-high{% endif %}">
@@ -29,28 +28,23 @@
                 {% endfor %}
             </div>
 
-            <!-- Canvas for ogive line and plane -->
             <canvas id="aviator-canvas"></canvas>
 
-            <!-- Multiplier overlay -->
             <div class="mult-overlay" id="mult-overlay">
                 <div class="multiplier-value" id="mult-value">1.00x</div>
                 <div class="multiplier-status" id="mult-status">Place your bets!</div>
             </div>
 
-            <!-- Crash overlay -->
             <div class="crash-overlay" id="crash-overlay" style="display:none;">
                 <div class="crash-text">FLEW AWAY!</div>
                 <div class="crash-mult" id="crash-mult-text"></div>
             </div>
 
-            <!-- Betting countdown -->
             <div class="betting-countdown" id="betting-countdown" style="display:none;">
                 <i class="fas fa-clock"></i>
                 Taking off in <span id="countdown-secs">10</span>s
             </div>
 
-            <!-- Sound toggle -->
             <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">
                 <i class="fas fa-volume-up" id="sound-icon"></i>
             </button>
@@ -73,8 +67,7 @@
                     <label>Bet Amount (Ksh)</label>
                     <div class="input-icon">
                         <i class="fas fa-coins"></i>
-                        <input type="number" id="bet-amount" value="10"
-                            min="5" placeholder="Min Ksh 5">
+                        <input type="number" id="bet-amount" value="10" min="5" placeholder="Min Ksh 5">
                     </div>
                     <div class="quick-amounts" style="margin-top:8px;">
                         <button type="button" onclick="setBet(10)" class="quick-btn">10</button>
@@ -88,14 +81,12 @@
                     <label>Auto Cashout <span class="optional">(optional)</span></label>
                     <div class="input-icon">
                         <i class="fas fa-robot"></i>
-                        <input type="number" id="auto-cashout"
-                            placeholder="e.g. 2.00" step="0.01" min="1.01">
+                        <input type="number" id="auto-cashout" placeholder="e.g. 2.00" step="0.01" min="1.01">
                     </div>
                     <small style="color:var(--text2);">Auto cashout at this multiplier</small>
                 </div>
 
-                <button id="bet-btn" onclick="placeBet()"
-                        class="btn btn-primary btn-full">
+                <button id="bet-btn" onclick="placeBet()" class="btn btn-primary btn-full">
                     <i class="fas fa-plane"></i> Place Bet
                 </button>
 
@@ -208,8 +199,8 @@
                         {% for bet in top_wins %}
                         <tr>
                             <td class="masked-user">
-    {{ bet.user.username|slice:":1" }}•••{{ bet.user.username|slice:"-1:" }}
-</td>
+                                {{ bet.user.username|slice:":1" }}•••{{ bet.user.username|slice:"-1:" }}
+                            </td>
                             <td style="color:var(--gold);">{{ bet.cashout_multiplier }}x</td>
                             <td class="text-green">Ksh {{ bet.winnings|floatformat:2 }}</td>
                         </tr>
@@ -275,20 +266,15 @@ function startEngineSound(multiplier) {
         engineNode = ctx.createOscillator();
         engineGain = ctx.createGain();
         const distortion = ctx.createWaveShaper();
-
-        // Create distortion curve for engine rumble
         const curve = new Float32Array(256);
         for (let i = 0; i < 256; i++) {
             const x = (i * 2) / 256 - 1;
             curve[i] = (Math.PI + 200) * x / (Math.PI + 200 * Math.abs(x));
         }
         distortion.curve = curve;
-
         engineNode.connect(distortion);
         distortion.connect(engineGain);
         engineGain.connect(ctx.destination);
-
-        // Frequency increases with multiplier
         const baseFreq = 80 + multiplier * 20;
         engineNode.type = 'sawtooth';
         engineNode.frequency.setValueAtTime(baseFreq, ctx.currentTime);
@@ -315,7 +301,6 @@ function stopEngineSound() {
 function playCrashSound() {
     stopEngineSound();
     if (!soundEnabled) return;
-    // Descending crash sound
     try {
         const ctx = getAudioCtx();
         const osc = ctx.createOscillator();
@@ -334,7 +319,6 @@ function playCrashSound() {
 
 function playCashoutSound() {
     if (!soundEnabled) return;
-    // Win chime
     [523, 659, 784, 1047].forEach((f, i) => {
         setTimeout(() => playBeep(f, 0.15, 'sine', 0.2), i * 80);
     });
@@ -349,7 +333,7 @@ function playBetSound() {
 const canvas = document.getElementById('aviator-canvas');
 const ctx2d = canvas.getContext('2d');
 let animFrame = null;
-let progress = 0; // 0 to 1
+let progress = 0;
 let planeX = 0, planeY = 0;
 let trailPoints = [];
 let isFlying = false;
@@ -359,16 +343,12 @@ function resizeCanvas() {
     canvas.width = screen.clientWidth;
     canvas.height = screen.clientHeight;
 }
-
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Ogive curve: starts flat, curves up exponentially
 function getOgivePoint(t, w, h) {
-    // t = 0 to 1 (progress)
-    // Ogive: y = h - h * (1 - e^(-5t)) + some curve
     const x = w * 0.1 + t * w * 0.82;
-    const curve = Math.pow(t, 1.8); // exponential curve
+    const curve = Math.pow(t, 1.8);
     const y = h * 0.85 - curve * h * 0.72;
     return { x, y };
 }
@@ -376,43 +356,28 @@ function getOgivePoint(t, w, h) {
 function drawGame(mult, status) {
     const w = canvas.width;
     const h = canvas.height;
-
     ctx2d.clearRect(0, 0, w, h);
 
     if (status === 'betting') {
-        // Draw idle state
         ctx2d.fillStyle = 'rgba(0,230,118,0.03)';
         ctx2d.fillRect(0, 0, w, h);
-
-        // Draw dotted grid
         ctx2d.strokeStyle = 'rgba(255,255,255,0.04)';
         ctx2d.setLineDash([2, 20]);
         for (let x = 0; x < w; x += 60) {
-            ctx2d.beginPath();
-            ctx2d.moveTo(x, 0);
-            ctx2d.lineTo(x, h);
-            ctx2d.stroke();
+            ctx2d.beginPath(); ctx2d.moveTo(x, 0); ctx2d.lineTo(x, h); ctx2d.stroke();
         }
         for (let y = 0; y < h; y += 60) {
-            ctx2d.beginPath();
-            ctx2d.moveTo(0, y);
-            ctx2d.lineTo(w, y);
-            ctx2d.stroke();
+            ctx2d.beginPath(); ctx2d.moveTo(0, y); ctx2d.lineTo(w, y); ctx2d.stroke();
         }
         ctx2d.setLineDash([]);
-
-        // Draw plane at start
         ctx2d.font = '28px serif';
         ctx2d.fillText('✈️', w * 0.1 - 14, h * 0.85);
         return;
     }
 
     if (status === 'crashed') {
-        // Red background flash
         ctx2d.fillStyle = 'rgba(255,50,50,0.06)';
         ctx2d.fillRect(0, 0, w, h);
-
-        // Draw full trail in red
         if (trailPoints.length > 1) {
             ctx2d.beginPath();
             ctx2d.moveTo(trailPoints[0].x, trailPoints[0].y);
@@ -426,43 +391,26 @@ function drawGame(mult, status) {
         return;
     }
 
-    // Flying state
-    // Background gradient
     ctx2d.fillStyle = 'rgba(0,10,20,0.3)';
     ctx2d.fillRect(0, 0, w, h);
-
-    // Draw grid lines (fading)
     ctx2d.strokeStyle = 'rgba(0,230,118,0.05)';
     ctx2d.setLineDash([2, 15]);
     ctx2d.lineWidth = 1;
     for (let x = 0; x < w; x += 80) {
-        ctx2d.beginPath();
-        ctx2d.moveTo(x, 0);
-        ctx2d.lineTo(x, h);
-        ctx2d.stroke();
+        ctx2d.beginPath(); ctx2d.moveTo(x, 0); ctx2d.lineTo(x, h); ctx2d.stroke();
     }
     for (let y = 0; y < h; y += 60) {
-        ctx2d.beginPath();
-        ctx2d.moveTo(0, y);
-        ctx2d.lineTo(w, y);
-        ctx2d.stroke();
+        ctx2d.beginPath(); ctx2d.moveTo(0, y); ctx2d.lineTo(w, y); ctx2d.stroke();
     }
     ctx2d.setLineDash([]);
 
-    // Draw ogive trail
     if (trailPoints.length > 1) {
-        // Glowing trail
         ctx2d.shadowColor = '#00e676';
         ctx2d.shadowBlur = 12;
-
-        // Gradient along trail
         const grad = ctx2d.createLinearGradient(
             trailPoints[0].x, trailPoints[0].y,
-            trailPoints[trailPoints.length-1].x,
-            trailPoints[trailPoints.length-1].y
+            trailPoints[trailPoints.length-1].x, trailPoints[trailPoints.length-1].y
         );
-
-        // Color based on multiplier
         if (mult < 2) {
             grad.addColorStop(0, 'rgba(0,230,118,0.2)');
             grad.addColorStop(1, 'rgba(0,230,118,1)');
@@ -473,7 +421,6 @@ function drawGame(mult, status) {
             grad.addColorStop(0, 'rgba(64,196,255,0.2)');
             grad.addColorStop(1, 'rgba(64,196,255,1)');
         }
-
         ctx2d.beginPath();
         ctx2d.moveTo(trailPoints[0].x, trailPoints[0].y);
         for (let i = 1; i < trailPoints.length; i++) {
@@ -485,17 +432,15 @@ function drawGame(mult, status) {
         ctx2d.stroke();
         ctx2d.shadowBlur = 0;
 
-        // Fill under curve
+        const lastPt = trailPoints[trailPoints.length-1];
         ctx2d.beginPath();
         ctx2d.moveTo(trailPoints[0].x, h);
         ctx2d.lineTo(trailPoints[0].x, trailPoints[0].y);
         for (let i = 1; i < trailPoints.length; i++) {
             ctx2d.lineTo(trailPoints[i].x, trailPoints[i].y);
         }
-        const lastPt = trailPoints[trailPoints.length-1];
         ctx2d.lineTo(lastPt.x, h);
         ctx2d.closePath();
-
         const fillGrad = ctx2d.createLinearGradient(0, 0, 0, h);
         if (mult < 2) {
             fillGrad.addColorStop(0, 'rgba(0,230,118,0.15)');
@@ -511,29 +456,22 @@ function drawGame(mult, status) {
         ctx2d.fill();
     }
 
-    // Draw plane at current position
     if (planeX > 0) {
-        // Plane glow
         ctx2d.shadowColor = mult < 2 ? '#00e676' : mult < 5 ? '#ffd740' : '#40c4ff';
         ctx2d.shadowBlur = 20;
         ctx2d.font = '32px serif';
-
-        // Rotate plane based on curve angle
         let angle = 0;
         if (trailPoints.length > 2) {
             const prev = trailPoints[trailPoints.length - 2];
             const curr = trailPoints[trailPoints.length - 1];
             angle = Math.atan2(curr.y - prev.y, curr.x - prev.x);
         }
-
         ctx2d.save();
         ctx2d.translate(planeX, planeY);
         ctx2d.rotate(angle);
         ctx2d.fillText('✈️', -16, 10);
         ctx2d.restore();
         ctx2d.shadowBlur = 0;
-
-        // Particle trail
         for (let i = 0; i < 3; i++) {
             const px = planeX - 20 - i * 15 + Math.random() * 6;
             const py = planeY + 5 + Math.random() * 6 - 3;
@@ -549,18 +487,12 @@ function drawGame(mult, status) {
 function animateFlying(mult, status) {
     const w = canvas.width;
     const h = canvas.height;
-
-    // Calculate progress from multiplier (1x = 0, crash_point = 1)
-    progress = Math.min((mult - 1) / 19, 1); // scale to 20x max visible
-
+    progress = Math.min((mult - 1) / 19, 1);
     const pt = getOgivePoint(progress, w, h);
     planeX = pt.x;
     planeY = pt.y;
-
-    // Add to trail (limit trail length)
     trailPoints.push({x: planeX, y: planeY});
     if (trailPoints.length > 200) trailPoints.shift();
-
     drawGame(mult, status);
 }
 
@@ -622,7 +554,6 @@ function updateMult(mult, status) {
     const el = document.getElementById('mult-value');
     if (!el) return;
     el.textContent = parseFloat(mult).toFixed(2) + 'x';
-
     if (mult < 1.5) el.style.color = '#ff5252';
     else if (mult < 2) el.style.color = '#ffa726';
     else if (mult < 5) el.style.color = '#ffd740';
@@ -705,14 +636,22 @@ function doCashout() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            // FIX: use wallet_balance returned directly from server, not calculated client-side
             updateWallet(data.wallet_balance);
             showResult(true, data.multiplier, data.winnings);
         } else {
             gameState.cashedOut = false;
-            showResult(false, 0, 0);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-hand-paper"></i> CASH OUT';
+            showBetMsg(data.error || 'Cashout failed.', 'error');
         }
     })
-    .catch(() => { gameState.cashedOut = false; });
+    .catch(() => {
+        gameState.cashedOut = false;
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-hand-paper"></i> CASH OUT';
+        showBetMsg('Network error. Try again.', 'error');
+    });
 }
 
 function updateWallet(balance) {
@@ -738,7 +677,7 @@ function poll() {
         const bettingCountdown = document.getElementById('betting-countdown');
         const countdownSecs = document.getElementById('countdown-secs');
 
-        // New round
+        // New round detected
         if (prevRound && prevRound !== data.round_id) {
             gameState.hasBet = false;
             gameState.cashedOut = false;
@@ -756,11 +695,9 @@ function poll() {
             if (bettingCountdown) bettingCountdown.style.display = 'block';
             if (countdownSecs) countdownSecs.textContent = Math.ceil(data.seconds_until_fly) || '...';
             if (statusEl) statusEl.textContent = '🎰 Place your bets!';
-
             trailPoints = [];
             drawGame(1.0, 'betting');
             updateMult(1.0, 'betting');
-
             if (!gameState.hasBet) showBetForm();
 
         } else if (data.status === 'flying') {
@@ -769,11 +706,10 @@ function poll() {
 
             const mult = data.current_multiplier || 1.0;
 
-            // Start engine sound when flying begins
             if (!gameState.flyingStarted) {
                 gameState.flyingStarted = true;
                 startEngineSound(mult);
-                playBeep(880, 0.15, 'sine', 0.2); // takeoff beep
+                playBeep(880, 0.15, 'sine', 0.2);
             } else {
                 updateEngineSound(mult);
             }
@@ -787,11 +723,15 @@ function poll() {
                 else statusEl.textContent = '✈️ Cash out before crash!';
             }
 
-            // Auto cashout handled server side
+            // FIX: auto-cashout result — use server wallet balance from next poll
+            // We only trigger the result UI here; wallet syncs on next poll via status endpoint
             if (data.user_bet && data.user_bet.status === 'won' && !gameState.cashedOut) {
                 gameState.cashedOut = true;
                 showResult(true, data.user_bet.cashout_multiplier, data.user_bet.winnings);
-                updateWallet(data.user_bet.winnings + gameState.betAmount);
+                // FIX: don't manually add amounts — fetch fresh balance instead
+                fetch('{% url "aviator:status" %}')
+                    .then(r => r.json())
+                    .then(d => { /* wallet updates on next poll automatically */ });
             }
 
             if (gameState.hasBet && !gameState.cashedOut) {
@@ -843,52 +783,29 @@ showActiveBet({{ user_bet.bet_amount }}, {{ user_bet.auto_cashout|default:'null'
     0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,215,64,0.4); }
     50% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(255,215,64,0); }
 }
-
 .mult-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
+    position: absolute; top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    text-align: center;
-    z-index: 10;
-    pointer-events: none;
+    text-align: center; z-index: 10; pointer-events: none;
 }
-
 .sound-toggle {
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
+    position: absolute; bottom: 1rem; right: 1rem;
     background: rgba(255,255,255,0.1);
     border: 1px solid rgba(255,255,255,0.2);
-    color: var(--text2);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 20;
-    transition: all 0.2s;
+    color: var(--text2); width: 36px; height: 36px;
+    border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 20; transition: all 0.2s;
 }
-
 .sound-toggle:hover {
     background: rgba(0,230,118,0.1);
-    color: var(--primary);
-    border-color: var(--primary);
+    color: var(--primary); border-color: var(--primary);
 }
-
 #aviator-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
+    position: absolute; inset: 0; width: 100%; height: 100%;
 }
-
-.masked-user{
-    font-weight:600;
-    letter-spacing:1px;
-    color:var(--text);
+.masked-user {
+    font-weight: 600; letter-spacing: 1px; color: var(--text);
 }
 </style>
 {% endblock %}

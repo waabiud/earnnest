@@ -1091,3 +1091,8 @@ tr:last-child td { border-bottom: none; }
         font-size: 3rem;
     }
 }
+.masked-user{
+    font-weight:600;
+    letter-spacing:1px;
+    color:var(--text);
+}

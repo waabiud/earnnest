@@ -1,8 +1,6 @@
 import json
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
 from django.utils import timezone
 from decimal import Decimal
 from .models import AviatorRound, AviatorBet, BETTING_DURATION
@@ -19,48 +17,40 @@ def activated_required(view_func):
 
 
 def get_or_create_round():
-    """Get current active round or create new one."""
     now = timezone.now()
 
-    # Check for active round
-    round = AviatorRound.objects.filter(
+    active_round = AviatorRound.objects.filter(
         status__in=['betting', 'flying']
     ).order_by('-created_at').first()
 
-    if round:
-        # Update status based on time
-        if round.status == 'betting' and now >= round.betting_ends_at:
-            round.status = 'flying'
-            round.save()
-        elif round.status == 'flying' and now >= round.flying_ends_at:
-            round.status = 'crashed'
-            round.save()
-            # Settle all active bets as lost
-            settle_lost_bets(round)
-            # Create next round after crash
-            round = AviatorRound.objects.create()
-        return round
+    if active_round:
+        if active_round.status == 'betting' and now >= active_round.betting_ends_at:
+            active_round.status = 'flying'
+            active_round.save()
+        elif active_round.status == 'flying' and now >= active_round.flying_ends_at:
+            active_round.status = 'crashed'
+            active_round.save()
+            settle_lost_bets(active_round)
+            active_round = AviatorRound.objects.create()
+        return active_round
 
-    # No active round — create one
     return AviatorRound.objects.create()
 
 
-def settle_lost_bets(round):
-    """Mark all uncashed bets as lost."""
+def settle_lost_bets(active_round):
     AviatorBet.objects.filter(
-        round=round,
+        round=active_round,
         status='active'
     ).update(status='lost')
 
 
-def process_auto_cashouts(round):
-    """Process any auto cashouts that should have triggered."""
-    if round.status != 'flying':
+def process_auto_cashouts(active_round):
+    if active_round.status != 'flying':
         return
 
-    current_mult = round.current_multiplier()
+    current_mult = active_round.current_multiplier()
     active_bets = AviatorBet.objects.filter(
-        round=round,
+        round=active_round,
         status='active',
         auto_cashout__isnull=False,
         auto_cashout__lte=current_mult
@@ -68,6 +58,7 @@ def process_auto_cashouts(round):
 
     for bet in active_bets:
         multiplier = bet.auto_cashout
+        # FIX: 'active_round' does not shadow built-in round()
         winnings = Decimal(str(round(float(bet.bet_amount) * multiplier, 2)))
 
         user = bet.user
@@ -83,12 +74,12 @@ def process_auto_cashouts(round):
 
 @activated_required
 def aviator_index(request):
-    round = get_or_create_round()
-    process_auto_cashouts(round)
+    active_round = get_or_create_round()
+    process_auto_cashouts(active_round)
 
     user_bet = AviatorBet.objects.filter(
         user=request.user,
-        round=round
+        round=active_round
     ).first()
 
     recent_rounds = AviatorRound.objects.filter(
@@ -104,7 +95,7 @@ def aviator_index(request):
     ).order_by('-winnings').select_related('user')[:5]
 
     context = {
-        'current_round': round,
+        'current_round': active_round,
         'user_bet': user_bet,
         'recent_rounds': recent_rounds,
         'bet_history': bet_history,
@@ -142,15 +133,15 @@ def place_bet(request):
             'error': f'Insufficient balance. Available: Ksh {user.wallet_balance}'
         })
 
-    round = get_or_create_round()
+    active_round = get_or_create_round()
 
-    if round.status != 'betting':
+    if active_round.status != 'betting':
         return JsonResponse({
             'success': False,
             'error': 'Betting is closed. Wait for next round.'
         })
 
-    if AviatorBet.objects.filter(user=user, round=round).exists():
+    if AviatorBet.objects.filter(user=user, round=active_round).exists():
         return JsonResponse({
             'success': False,
             'error': 'You already placed a bet this round.'
@@ -161,7 +152,7 @@ def place_bet(request):
 
     bet = AviatorBet.objects.create(
         user=user,
-        round=round,
+        round=active_round,
         bet_amount=bet_amount,
         auto_cashout=auto_cashout,
         status='active',
@@ -179,34 +170,35 @@ def place_bet(request):
 @activated_required
 def cashout(request):
     if request.method != 'POST':
-        return JsonResponse({'success': False})
+        return JsonResponse({'success': False, 'error': 'Method not allowed'})
 
     user = request.user
 
-    round = AviatorRound.objects.filter(
+    # FIX: renamed to active_round so built-in round() is NOT shadowed
+    active_round = AviatorRound.objects.filter(
         status='flying'
     ).order_by('-created_at').first()
 
-    if not round:
+    if not active_round:
         return JsonResponse({'success': False, 'error': 'No active round.'})
 
     bet = AviatorBet.objects.filter(
         user=user,
-        round=round,
+        round=active_round,
         status='active'
     ).first()
 
     if not bet:
         return JsonResponse({'success': False, 'error': 'No active bet.'})
 
-    multiplier = round.current_multiplier()
+    multiplier = active_round.current_multiplier()
 
-    # Make sure we don't cashout beyond crash point
-    if multiplier >= round.crash_point:
+    if multiplier >= active_round.crash_point:
         bet.status = 'lost'
         bet.save()
         return JsonResponse({'success': False, 'error': 'Too late! Plane crashed.'})
 
+    # FIX: round() now correctly calls the built-in function
     winnings = Decimal(str(round(float(bet.bet_amount) * multiplier, 2)))
 
     user.wallet_balance += winnings
@@ -227,25 +219,24 @@ def cashout(request):
 
 
 def round_status(request):
-    """AJAX polling endpoint."""
-    round = get_or_create_round()
+    active_round = get_or_create_round()
     if request.user.is_authenticated:
-        process_auto_cashouts(round)
+        process_auto_cashouts(active_round)
 
-    current_mult = round.current_multiplier()
+    current_mult = active_round.current_multiplier()
 
     data = {
-        'round_id': round.pk,
-        'status': round.status,
+        'round_id': active_round.pk,
+        'status': active_round.status,
         'current_multiplier': current_mult,
-        'crash_point': round.crash_point if round.status == 'crashed' else None,
-        'seconds_until_fly': round.seconds_until_fly(),
+        'crash_point': active_round.crash_point if active_round.status == 'crashed' else None,
+        'seconds_until_fly': active_round.seconds_until_fly(),
     }
 
     if request.user.is_authenticated:
         bet = AviatorBet.objects.filter(
             user=request.user,
-            round=round
+            round=active_round
         ).first()
         if bet:
             data['user_bet'] = {
