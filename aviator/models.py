@@ -1,55 +1,82 @@
-import random
 import hashlib
-import hmac
+import random
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from datetime import timedelta
+
+
+ROUND_DURATION = 30      # max seconds a round can fly
+BETTING_DURATION = 10    # seconds for betting phase
 
 
 def generate_crash_point():
     """
-    Provably fair crash point generation.
-    Returns a float like 1.24, 3.50, 1.00 etc.
+    Provably fair crash between 1.00 and 100.00.
+    Weighted toward lower values (like real aviator).
     """
-    seed = random.randint(1, 1000000)
-    hash_val = hashlib.sha256(str(seed).encode()).hexdigest()
-    result = int(hash_val[:8], 16)
-    crash_point = max(1.0, (result % 2000) / 100 + 1.0)
-    return round(crash_point, 2)
+    seed = random.randint(1, 10000000)
+    h = hashlib.sha256(str(seed).encode()).hexdigest()
+    val = int(h[:8], 16) / 0xFFFFFFFF  # 0.0 to 1.0
+    # Formula: most crashes between 1x-3x, rare 10x+, very rare 50x+
+    crash = 1.0 / (1.0 - val * 0.99)
+    crash = min(crash, 100.0)
+    return round(crash, 2)
 
 
 class AviatorRound(models.Model):
     STATUS_CHOICES = [
-        ('waiting', 'Waiting'),    # waiting for bets
-        ('flying', 'Flying'),      # plane is flying
-        ('crashed', 'Crashed'),    # plane crashed
+        ('betting', 'Betting'),
+        ('flying', 'Flying'),
+        ('crashed', 'Crashed'),
     ]
 
     crash_point = models.FloatField(default=generate_crash_point)
-    status = models.CharField(
-        max_length=10,
-        choices=STATUS_CHOICES,
-        default='waiting'
-    )
-    started_at = models.DateTimeField(null=True, blank=True)
-    crashed_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='betting')
+    betting_ends_at = models.DateTimeField(null=True, blank=True)
+    flying_ends_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Round #{self.pk} - Crashed at {self.crash_point}x"
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            now = timezone.now()
+            self.betting_ends_at = now + timedelta(seconds=BETTING_DURATION)
+            # Flying ends when crash_point is reached
+            fly_time = min(self.crash_point * 2, ROUND_DURATION)
+            self.flying_ends_at = self.betting_ends_at + timedelta(seconds=fly_time)
+        super().save(*args, **kwargs)
 
-    def duration_seconds(self):
-        """How long the plane flies before crash."""
-        if self.started_at and self.crashed_at:
-            return (self.crashed_at - self.started_at).total_seconds()
+    def current_multiplier(self):
+        """Calculate current multiplier based on elapsed time."""
+        now = timezone.now()
+        if self.status == 'betting':
+            return 1.0
+        if self.status == 'crashed':
+            return self.crash_point
+        if self.betting_ends_at and self.flying_ends_at:
+            elapsed = (now - self.betting_ends_at).total_seconds()
+            total = (self.flying_ends_at - self.betting_ends_at).total_seconds()
+            if total > 0:
+                progress = min(elapsed / total, 1.0)
+                mult = 1.0 + (self.crash_point - 1.0) * progress
+                return round(min(mult, self.crash_point), 2)
+        return 1.0
+
+    def seconds_until_fly(self):
+        if self.betting_ends_at:
+            diff = (self.betting_ends_at - timezone.now()).total_seconds()
+            return max(0, round(diff, 1))
         return 0
+
+    def __str__(self):
+        return f"Round #{self.pk} - {self.crash_point}x - {self.status}"
 
 
 class AviatorBet(models.Model):
     STATUS_CHOICES = [
-        ('active', 'Active'),      # bet placed, not cashed out
-        ('won', 'Won'),            # cashed out before crash
-        ('lost', 'Lost'),          # plane crashed before cashout
+        ('active', 'Active'),
+        ('won', 'Won'),
+        ('lost', 'Lost'),
     ]
 
     user = models.ForeignKey(
@@ -63,18 +90,12 @@ class AviatorBet(models.Model):
         related_name='bets'
     )
     bet_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    auto_cashout = models.FloatField(null=True, blank=True)  # auto cashout multiplier
-    cashout_multiplier = models.FloatField(null=True, blank=True)  # actual cashout
+    auto_cashout = models.FloatField(null=True, blank=True)
+    cashout_multiplier = models.FloatField(null=True, blank=True)
     winnings = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     cashed_out_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return (
-            f"{self.user.username} - Ksh{self.bet_amount} "
-            f"- {self.status} - {self.cashout_multiplier}x"
-        )
-
-    def calculate_winnings(self, multiplier):
-        return round(float(self.bet_amount) * multiplier, 2)
+        return f"{self.user.username} - Ksh{self.bet_amount} - {self.status}"
