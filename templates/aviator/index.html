@@ -1,8 +1,18 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Aviator - Earnnest{% endblock %}
 {% block nav_aviator %}active{% endblock %}
 
 {% block content %}
+
+<!-- Sounds -->
+<audio id="bg-music" loop preload="auto">
+    <source src="{% static 'aviator/sounds/bg_music.mp3' %}" type="audio/mpeg">
+</audio>
+<audio id="flew-away-sound" preload="auto">
+    <source src="{% static 'aviator/sounds/flew_away.m4a' %}" type="audio/mpeg">
+</audio>
+
 <div class="dashboard-wrapper">
     <div class="dashboard-header">
         <div>
@@ -45,6 +55,7 @@
                 Taking off in <span id="countdown-secs">10</span>s
             </div>
 
+            <!-- Sound toggle -->
             <button class="sound-toggle" id="sound-toggle" onclick="toggleSound()">
                 <i class="fas fa-volume-up" id="sound-icon"></i>
             </button>
@@ -223,120 +234,54 @@
 <script>
 const CSRF = '{{ csrf_token }}';
 
-// ── Audio Engine ──────────────────────────────────────────────────
-let audioCtx = null;
+// ── Sound ─────────────────────────────────────────────────────────
 let soundEnabled = true;
-let engineNode = null;
-let engineGain = null;
 
-function getAudioCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    return audioCtx;
-}
+const bgMusic = document.getElementById('bg-music');
+const flewAwaySound = document.getElementById('flew-away-sound');
+
+// Start bg music on first user interaction (browser autoplay policy)
+document.addEventListener('click', function startMusic() {
+    if (soundEnabled && bgMusic.paused) {
+        bgMusic.volume = 0.4;
+        bgMusic.play().catch(() => {});
+    }
+    document.removeEventListener('click', startMusic);
+}, { once: true });
 
 function toggleSound() {
     soundEnabled = !soundEnabled;
     document.getElementById('sound-icon').className =
         soundEnabled ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-    if (!soundEnabled && engineNode) stopEngineSound();
+
+    if (soundEnabled) {
+        bgMusic.volume = 0.4;
+        bgMusic.play().catch(() => {});
+    } else {
+        bgMusic.pause();
+        flewAwaySound.pause();
+        flewAwaySound.currentTime = 0;
+    }
 }
 
-function playBeep(freq, duration, type='sine', vol=0.3) {
+function playFlewAway() {
     if (!soundEnabled) return;
-    try {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        gain.gain.setValueAtTime(vol, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + duration);
-    } catch(e) {}
-}
-
-function startEngineSound(multiplier) {
-    if (!soundEnabled) return;
-    stopEngineSound();
-    try {
-        const ctx = getAudioCtx();
-        engineNode = ctx.createOscillator();
-        engineGain = ctx.createGain();
-        const distortion = ctx.createWaveShaper();
-        const curve = new Float32Array(256);
-        for (let i = 0; i < 256; i++) {
-            const x = (i * 2) / 256 - 1;
-            curve[i] = (Math.PI + 200) * x / (Math.PI + 200 * Math.abs(x));
-        }
-        distortion.curve = curve;
-        engineNode.connect(distortion);
-        distortion.connect(engineGain);
-        engineGain.connect(ctx.destination);
-        const baseFreq = 80 + multiplier * 20;
-        engineNode.type = 'sawtooth';
-        engineNode.frequency.setValueAtTime(baseFreq, ctx.currentTime);
-        engineGain.gain.setValueAtTime(0.08, ctx.currentTime);
-        engineNode.start();
-    } catch(e) {}
-}
-
-function updateEngineSound(multiplier) {
-    if (!soundEnabled || !engineNode || !audioCtx) return;
-    try {
-        const baseFreq = 80 + multiplier * 15;
-        engineNode.frequency.setValueAtTime(baseFreq, audioCtx.currentTime);
-    } catch(e) {}
-}
-
-function stopEngineSound() {
-    try {
-        if (engineNode) { engineNode.stop(); engineNode = null; }
-        engineGain = null;
-    } catch(e) {}
-}
-
-function playCrashSound() {
-    stopEngineSound();
-    if (!soundEnabled) return;
-    try {
-        const ctx = getAudioCtx();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(400, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.8);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.8);
-    } catch(e) {}
-}
-
-function playCashoutSound() {
-    if (!soundEnabled) return;
-    [523, 659, 784, 1047].forEach((f, i) => {
-        setTimeout(() => playBeep(f, 0.15, 'sine', 0.2), i * 80);
-    });
-}
-
-function playBetSound() {
-    if (!soundEnabled) return;
-    playBeep(440, 0.1, 'sine', 0.15);
+    // Briefly lower bg music, play flew away, then restore
+    bgMusic.volume = 0.1;
+    flewAwaySound.currentTime = 0;
+    flewAwaySound.volume = 0.9;
+    flewAwaySound.play().catch(() => {});
+    flewAwaySound.onended = () => {
+        if (soundEnabled) bgMusic.volume = 0.4;
+    };
 }
 
 // ── Canvas Renderer ───────────────────────────────────────────────
 const canvas = document.getElementById('aviator-canvas');
 const ctx2d = canvas.getContext('2d');
-let animFrame = null;
 let progress = 0;
 let planeX = 0, planeY = 0;
 let trailPoints = [];
-let isFlying = false;
 
 function resizeCanvas() {
     const screen = document.getElementById('aviator-screen');
@@ -391,6 +336,7 @@ function drawGame(mult, status) {
         return;
     }
 
+    // Flying
     ctx2d.fillStyle = 'rgba(0,10,20,0.3)';
     ctx2d.fillRect(0, 0, w, h);
     ctx2d.strokeStyle = 'rgba(0,230,118,0.05)';
@@ -538,7 +484,6 @@ function showResult(won, mult, winnings) {
         document.getElementById('lose-result').style.display = 'none';
         document.getElementById('res-mult').textContent = parseFloat(mult).toFixed(2);
         document.getElementById('res-win').textContent = parseFloat(winnings).toFixed(2);
-        playCashoutSound();
     } else {
         document.getElementById('win-result').style.display = 'none';
         document.getElementById('lose-result').style.display = 'flex';
@@ -608,7 +553,6 @@ function placeBet() {
             gameState.cashedOut = false;
             showActiveBet(data.bet_amount, data.auto_cashout);
             updateWallet(data.wallet_balance);
-            playBetSound();
         } else {
             showBetMsg(data.error || 'Failed to place bet.', 'error');
         }
@@ -636,7 +580,6 @@ function doCashout() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            // FIX: use wallet_balance returned directly from server, not calculated client-side
             updateWallet(data.wallet_balance);
             showResult(true, data.multiplier, data.winnings);
         } else {
@@ -688,9 +631,6 @@ function poll() {
         }
 
         if (data.status === 'betting') {
-            if (prevStatus === 'crashed' || prevStatus === 'flying') {
-                stopEngineSound();
-            }
             if (crashOverlay) crashOverlay.style.display = 'none';
             if (bettingCountdown) bettingCountdown.style.display = 'block';
             if (countdownSecs) countdownSecs.textContent = Math.ceil(data.seconds_until_fly) || '...';
@@ -708,10 +648,6 @@ function poll() {
 
             if (!gameState.flyingStarted) {
                 gameState.flyingStarted = true;
-                startEngineSound(mult);
-                playBeep(880, 0.15, 'sine', 0.2);
-            } else {
-                updateEngineSound(mult);
             }
 
             animateFlying(mult, 'flying');
@@ -723,15 +659,9 @@ function poll() {
                 else statusEl.textContent = '✈️ Cash out before crash!';
             }
 
-            // FIX: auto-cashout result — use server wallet balance from next poll
-            // We only trigger the result UI here; wallet syncs on next poll via status endpoint
             if (data.user_bet && data.user_bet.status === 'won' && !gameState.cashedOut) {
                 gameState.cashedOut = true;
                 showResult(true, data.user_bet.cashout_multiplier, data.user_bet.winnings);
-                // FIX: don't manually add amounts — fetch fresh balance instead
-                fetch('{% url "aviator:status" %}')
-                    .then(r => r.json())
-                    .then(d => { /* wallet updates on next poll automatically */ });
             }
 
             if (gameState.hasBet && !gameState.cashedOut) {
@@ -742,8 +672,10 @@ function poll() {
             if (bettingCountdown) bettingCountdown.style.display = 'none';
 
             if (prevStatus === 'flying') {
-                playCrashSound();
                 gameState.flyingStarted = false;
+
+                // Play flew away sound
+                playFlewAway();
 
                 if (crashOverlay) {
                     crashOverlay.style.display = 'flex';
@@ -769,7 +701,6 @@ function poll() {
 drawGame(1.0, 'betting');
 resizeCanvas();
 
-// Poll every second
 setInterval(poll, 1000);
 poll();
 
@@ -799,7 +730,8 @@ showActiveBet({{ user_bet.bet_amount }}, {{ user_bet.auto_cashout|default:'null'
 }
 .sound-toggle:hover {
     background: rgba(0,230,118,0.1);
-    color: var(--primary); border-color: var(--primary);
+    color: var(--primary);
+    border-color: var(--primary);
 }
 #aviator-canvas {
     position: absolute; inset: 0; width: 100%; height: 100%;
