@@ -1096,3 +1096,186 @@ tr:last-child td { border-bottom: none; }
     letter-spacing:1px;
     color:var(--text);
 }
+
+html, body {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.main-content {
+    width: 100%;
+    min-height: calc(100vh - 64px);
+    overflow-x: hidden;
+}
+
+.dashboard-wrapper {
+    width: 100%;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+/* Fix navbar on mobile */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0 1rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        width: 100%;
+    }
+
+    .dashboard-wrapper {
+        padding: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .aviator-layout {
+        grid-template-columns: 1fr !important;
+    }
+
+    .aviator-screen {
+        min-height: 260px !important;
+    }
+
+    .multiplier-value {
+        font-size: 3.5rem !important;
+    }
+
+    .casino-games-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .auth-wrapper {
+        grid-template-columns: 1fr !important;
+        min-height: 100vh;
+    }
+
+    .auth-left {
+        display: none !important;
+    }
+
+    .auth-right {
+        width: 100%;
+        padding: 1.5rem 1rem;
+        min-height: 100vh;
+        align-items: flex-start;
+        padding-top: 3rem;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 100%;
+        padding: 1.5rem;
+    }
+
+    .referral-banner {
+        flex-direction: column !important;
+    }
+
+    .referral-link-box {
+        max-width: 100% !important;
+    }
+
+    .section {
+        padding: 3rem 1rem !important;
+    }
+
+    .cta-section {
+        margin: 0 1rem 3rem !important;
+        padding: 2rem 1rem !important;
+    }
+
+    .steps-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    .earning-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .footer {
+        padding: 1.5rem 1rem !important;
+        flex-direction: column !important;
+        gap: 0.8rem !important;
+        text-align: center !important;
+    }
+
+    .landing-nav {
+        padding: 1rem !important;
+    }
+
+    .activate-wrapper {
+        padding: 1rem !important;
+        align-items: flex-start !important;
+        padding-top: 2rem !important;
+    }
+
+    .activate-card {
+        padding: 1.5rem !important;
+    }
+
+    table {
+        font-size: 0.8rem;
+    }
+
+    th, td {
+        padding: 8px 4px !important;
+    }
+
+    .nav-user .wallet-badge {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+    }
+
+    .username {
+        display: none;
+    }
+
+    .game-info-row {
+        flex-wrap: wrap;
+    }
+
+    .hero h1 {
+        font-size: 2.2rem !important;
+        letter-spacing: -1px !important;
+    }
+
+    .hero p {
+        font-size: 1rem !important;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-stats {
+        gap: 1rem !important;
+    }
+
+    .hero-stat-value {
+        font-size: 1.5rem !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .steps-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .multiplier-value {
+        font-size: 2.5rem !important;
+    }
+}
