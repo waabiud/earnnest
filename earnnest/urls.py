@@ -24,4 +24,5 @@ urlpatterns = [
     path('game/', include('game.urls')),
     path('notifications/', include('notifications.urls')),
     path('dashboard/', include('dashboard.urls')),
+    path('api/', include('api.urls')),
 ]

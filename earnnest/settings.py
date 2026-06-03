@@ -30,6 +30,9 @@ INSTALLED_APPS = [
     'game',
     'notifications',
     'dashboard',
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
     # Third party
     'django_celery_beat',
 ]
@@ -43,6 +46,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'earnnest.urls'
@@ -256,4 +260,28 @@ UNFOLD = {
             },
         ],
     },
+}
+
+# REST Framework
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# CORS
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'http://10.0.2.2:8000',  # Android emulator
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# JWT
+from datetime import timedelta
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
 }
