@@ -8,8 +8,8 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-username = "abiud"
-email = "email@example.com"
+username = "admin"
+email = "wwamalwa1@gmail.com"
 password = os.environ.get("ADMIN_PASSWORD")
 
 if not password:
